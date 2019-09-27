@@ -1,3 +1,11 @@
+#
+# Copyright 2019 National Technology & Engineering Solutions of
+# Sandia, LLC (NTESS). Under the terms of Contract DE-NA0003525
+# with NTESS, the U.S. Government retains certain rights in this
+# software.
+#
+
+
 # Introduction
 
 Access to network traffic records is an integral part of recognizing and addressing network security breaches. Even with the increasing sophistication of network attacks, basic network events such as connections between two IP addresses play an important role in any network defense. Given the duration of current attacks, long-term data archival is critical but typically very little of the data is ever accessed. Previous work has provided tools and identified the need to trace connections. However, traditional databases raise performance concerns as they are optimized for querying rather than ingestion. The study of write-optimized data structures (WODS) is a new and growing field that provides a novel approach to traditional storage structures (e.g., B-trees). WODS trade minor degradations in query performance for significant gains in the ability to quickly insert more data elements, typically on the order of 10 to 100 times more inserts per second. These efficient, out-of-memory data structures can play a critical role in enabling robust, long-term tracking of network events. Diventi uses a write-optimized B-tree known as a B^ɛ tree to track all IP address connections in a network traffic stream.
