@@ -1,0 +1,101 @@
+This directory contains a few examples of querying scripts and a general purpose diventi querier.
+
+HTTP Queries:
+	Users can send requests via HTTP using the following format
+
+	http://diventiIP:port/query?
+		arguments:
+			ip (required): the ip addr to query on
+			range: the last ip to query for in a range from ip to range
+			startTime: the first time in a range of timestamps to query on
+			endTime: the last time in a range of timestamps to query on
+			type: the format for the data to be returned in
+
+	example:
+		http://0.0.0.0:41311/query?ip=0.0.0.0&range=255.255.255.255&type=bin
+
+		this queries a server on the local machine for all ips and returns the data in binary format
+
+	port is currently 41311 for all diventi Servers 
+
+QueryClient.py:
+	This script is used for general purpose point and range queries to the Diventi server.
+
+	USAGE:
+		minimum needed:
+		./QueryClient.py diventiIP(unless defined elsewhere) queryIP
+
+		OPTIONS:
+			-r RANGE 	the range of IPs between queryIP and range (inclusive) are queried upon
+			-s START 	Defines the first timestamp, all timestamps between start and end (inclusive) are queried upon
+			-e END 		Defines the last timestamp, all timestamps between start and end (inclusive) are queried upon
+			-f FORM		Defines the format of the returned data
+			-p 			Return performance data about the query
+
+
+	Format Options:
+		none (the default): returns ascii
+		json: returns a json string
+		bin: returns binary data
+		verbose: returns ascii with expanded fields (human readable time for example)
+
+	Examples with diventiIP: 0.0.0.0:
+		Query a specific ip address: 225.100.90.10
+			./QueryClient 0.0.0.0 255.100.90.10
+
+		Query a range of ips starting at 10.50.90.100 and ending with 100.0.0.0
+			./QueryClient 0.0.0.0 10.50.90.100 -r 100.0.0.0
+
+		Query for all records of ip 10.0.0.0 after timestamp 123456789
+			./QueryClient 0.0.0.0 10.0.0.0 -s 123456789
+
+		Query for all records of ip 10.0.0.0 before timestamp 987654321
+			./QueryClient 0.0.0.0 10.0.0.0 -e 987654321
+
+		Query for all records of ip 10.0.0.0 after timestamp 123456789 and before timestamp 987654321
+			./QueryClient 0.0.0.0 10.0.0.0 -s 123456789 -e 987654321
+
+		Return json data
+			./QueryClient (insert any from above) -f json
+			replace json with bin or verbose for other formats
+
+		Note:
+			If diventiIP is defined by one of the other sources defined below it can be safely dropped
+
+
+	Defining Diventi Server:
+		script looks in
+			/etc/diventi.conf
+			.diventi.conf
+			cli options
+
+		each level down overrides those above it
+		This is done to make defining the server ip less of a hassle
+
+secOrdConn.py
+	example of a script which finds all the first and second order connections of a certain ip address
+
+	    1st   2nd
+	   /     /
+	ip -- 1st -- 2nd
+	  \    \
+	   \    2nd
+	   1st -- 2nd
+	     \ 
+	      2nd
+
+binary_ex.py
+	example of getting and parsing binary data from the server
+
+bin_functions.py
+	functions used by binary_ex
+
+close_last_week.py
+	example of querying server using for all records on a given ip which occurred within the last week
+
+json_ex.py
+	example of getting and parsing json data from the server
+
+query_subnet.py
+	example of a range query script
+

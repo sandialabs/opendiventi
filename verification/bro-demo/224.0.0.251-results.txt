@@ -1,0 +1,93 @@
+ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid
+1258532331.365294   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CfR2Te132TSqXPJc2e
+1258532525.592455   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CtKkjB2jrd3fJeEILd
+1258532644.128655   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CZHHdL3jURNO4HaPuj
+1258533745.340248   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0           C62gg030SCYUTws8F
+1258535848.505159   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CUyMpu2exKuLuolkR8
+1258536093.786106   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CdC6xg3Jcv2FNbsGak
+1258536244.128158   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0            C3bJBbj3061InZHL
+1258539424.112483   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CPAeej3bqbZ483hphd
+1258539611.185567   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CKSVLY15aSInsBz96c
+1258539844.128577   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CYoLG4435PQS2dONvb
+1258542900.514732   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          Ci1X341HQMigeAZrK1
+1258542998.482235   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0           CUcfwhv2spWIOjjy7
+1258543180.664839   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CYvrxZ1sL68u9yhGu4
+1258543444.128954   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0           C3orv747x2pSBkRo9
+1258546572.147887   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0           CIdriGCI7SX6IyxXg
+ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid
+1258546708.836216   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CFcqWj4DyDSl90EYof
+1258547044.128177   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0            CNKGxH97MSJztirH
+1258550107.223768   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CpIIJb33e1VhxIz91b
+1258550278.927586   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          C7UdKV1Zil29cAg7Pb
+1258550644.128973   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CB6W8G2xsFgsgJBZP9
+1258553648.560652   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          Ciqlfn34FlnaQ8QETc
+1258553811.654655   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CNhuYw14iSjvGTFPNa
+1258554244.128306   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CaOX3S1JBa3XRfYKc6
+1258557179.256354   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CWLPKQ1w9cc6ppkft6
+1258557344.640149   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0           C4hfB7lTDH4KLYVu3
+1258557843.252732   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          Cb2KY22AaaKsXgI7K4
+1258560749.251603   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CbKR3b2jOR4pHuBrE8
+1258560909.969196   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          COM8v43tAjKk8Uy5Pb
+1258561443.253053   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          Cik8Ye4cVuznGtYNkh
+1258564274.637286   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CkOqmj1YzdbSOWu1ne
+ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid
+1258564458.735461   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CHxuRV3UdJlkWz8Vll
+1258565043.252095   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CL5Jul2o5yAZwbJWXe
+1258567812.408009   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CcdYxM22G3rjbZIAVf
+1258568020.476942   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CvfOQl3aWNz4nJtqad
+1258568643.252673   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CPpkVd3DTTGGpJb7Bd
+1258571328.794550   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          Cf2rNN2QTMVwbUMd25
+1258571564.317346   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          ChF5SO3w5PeZyyVe94
+1258572243.252487   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CAJCkl2cW8WehwrxYe
+1258574843.416606   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0           CG6tJrOvShfzcu3E4
+1258575075.41378   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CGUYTV2SCKkvcfBjdc
+1258575843.252929   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CpBWfD4gmZCI3OxN4i
+1258576939.502255   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CX5hTK2Iu9B3BNEsSf
+1258578412.206938   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CPVy2c3E4qQninzCcl
+1258578646.252493   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          C4S0ZD3fusfPdJEL2k
+1258579443.252121   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          Crvodj4rB5h8KbYsVg
+ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid
+1258582010.734762   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0           C3EOrflXVhUF4nMi7
+1258582187.401069   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0           CBUbxv0k5kM4EJUB4
+1258583043.252605   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          C8Ungt2csiRffsBbte
+1258585539.996417   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          Cbk0RN1uAOAWIJcDbb
+1258585743.863628   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CpVXtD2dVjRHNzEVRd
+1258586643.253014   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CbZbtW2uUKJQMKFMil
+1258589082.803673   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CrZ5Qo1sYNFABN1Tp8
+1258589295.217971   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0            CXdPdGhCDRL29fxY
+1258589755.142863   192.168.1.102     5353        224.0.0.251       5353     	bro-demo       udp     10         [2047 - 4095)   0            S0           [15 - 31)   0          CQofBT3HaMJNmRxa3c
+1258589761.731742   192.168.1.104     5353        224.0.0.251       5353     	bro-demo       udp     13         [2047 - 4095)   0            S0           [15 - 31)   0          CPOpD22ag54HziwaF5
+1258589766.18041   192.168.1.103     5353        224.0.0.251       5353     	bro-demo       udp     12         [2047 - 4095)   0            S0           [15 - 31)   0          CaNV7t4oeydnfS7yw7
+1258590243.252572   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CxtOcu3wGDCJK3X4nc
+1258592297.89738   192.168.1.104     5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CcHbeJ3QYTDCGB4qJj
+1258592297.89903   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CeG0YT2foeo2eVtjQa
+1258592297.89979   192.168.1.102     5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0           CtWt6t1oLaurEV57K
+ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid
+1258592297.852259   192.168.1.103     5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CI1uH72cviCyLkpZ18
+1258592596.524125   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [1 - 3)     0          CG3cjW13QFNdyGbJ86
+1258593089.102815   192.168.1.102     5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CLRYxs1r2XlWrVPU3f
+1258593089.102954   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CYVQRS3vsKE8WgGvul
+1258593089.103561   192.168.1.103     5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          C1sZMY24XjC09IvT4c
+1258593843.252754   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     -          0            0            S0           [1 - 3)     0          CICIIG2UCxFEdf1nN9
+1258594856.63290   192.168.1.103     5353        224.0.0.251       5353     	bro-demo       udp     0          [511 - 1023)   0            S0           [1 - 3)     0          CBJ4q92wEQC1VocLOc
+1258594856.63434   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CGjalm4mT76bjY5cwg
+1258594866.358596   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [3 - 7)     0          CPCPHN2h2NmTlgmIFf
+1258596373.767395   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [511 - 1023)   0            S0           [3 - 7)     0          CPXyeJ26k7WWqOz06g
+1258597443.252204   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [511 - 1023)   0            S0           [3 - 7)     0          CCHOI02sIeDdEfiQIh
+1258599965.299907   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [511 - 1023)   0            S0           [3 - 7)     0           C5XFo2Da2ksC6aktj
+1258600959.231617   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [3 - 7)     0          C06sHj1ghHvRP9PG39
+1258601043.252993   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CrXcTv1Oi3VA1385Ia
+1258603540.51313   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [511 - 1023)   0            S0           [3 - 7)     0          CrPogD3ZYbE8rkH4Ed
+ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid
+1258604497.647886   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [511 - 1023)   0            S0           [3 - 7)     0          CaBnpH2cB0LwHgikvh
+1258604643.252912   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CkOQZh3rdUNcdrVLn1
+1258607070.404498   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [255 - 511)   0            S0           [3 - 7)     0          CAjljE2GEhOtgB4lbh
+1258608079.499337   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [511 - 1023)   0            S0           [3 - 7)     0          CpPaoC3JAoOBnhvNud
+1258608243.252309   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CXDukI34v8fum7BeDj
+1258610596.470899   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [511 - 1023)   0            S0           [3 - 7)     0          Ci4mmI1wFB3ue6wKW9
+1258611597.204694   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [511 - 1023)   0            S0           [3 - 7)     0          CsdoHK3c9R6IXTaHrj
+1258611843.252511   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CzH4An47yxjIa2tZ24
+1258612889.886734   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [511 - 1023)   0            S0           [3 - 7)     0          CduA0o1V7Zt8V7xiJ8
+1258615110.231147   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [511 - 1023)   0            S0           [3 - 7)     0          CAsvnF1eOlRn3rpo7g
+1258615441.940944   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     1          [511 - 1023)   0            S0           [3 - 7)     0          CGnCBg2LjdPlRUZBjd
+1258616844.572686   192.168.1.1       5353        224.0.0.251       5353     	bro-demo       udp     0          [127 - 255)   0            S0           [1 - 3)     0          CBjSDw2dqk5ZYsKJne

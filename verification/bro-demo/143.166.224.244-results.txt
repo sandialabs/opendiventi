@@ -1,0 +1,2 @@
+ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid
+1258593973.737093   192.168.1.105     49281       143.166.224.244   80       	bro-demo       tcp     64         [1023 - 2047)   [8191 - 16383)   RSTO         [7 - 15)    [7 - 15)   CE6v2f1dQ3aWHV8ml2
