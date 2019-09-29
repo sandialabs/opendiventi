@@ -32,7 +32,7 @@ $ exit
 After doing the above, install Diventi by running `make install`. It will prompt you to make necessary configurations if needed.
 
 # Usage
-Most server options are configured using the config.ini file. This file has detailed instructions on how to tell Diventi what data sources to use.
+Most server options are configured using the `config.ini` file. This file has detailed instructions on how to tell Diventi what data sources to use.
 
 In addition to data sources the following general configuration options are available:
 
@@ -52,12 +52,12 @@ In addition to data sources the following general configuration options are avai
 | **threadExp** | The amount to scale threadbase by to add the next thread. Must be greater than `1`. `1.3` would be a 130% increase. |
 | **cleanDelay** | The number of insertions to wait before activating the cleaners. |
 
-Once you've installed you can run diventiServer -h from /build to get more instructions for configuring the server via the command line.
+Once you've installed you can run diventiServer -h from /build to for instructions on how to implement some of these options via the command line.
 
 # Queries
 Queries have a standardized HTTP interface, so it is possible for commonly made queries to be scripted.
 
-Queries should be made to DIVENTI_IP:41311/query with an HTTP GET request.
+Queries should be made to DIVENTI_IP:41311/query with an HTTP GET request. Or if the server has a different query port specified that should be used in place of 41311.
 
 Arguments are:
 
@@ -140,6 +140,7 @@ Diventi can currently only ingest Netflow v9 that is transmitted over syslog. Di
 * start_m(152)
 * end_m(153)
 
+Note that the last two are options which are addons to the standard Netflow v9 format options. These are the start time of the conneciton and the end time in milliseconds. Slight modifications to the code base would be needed to track time using different options.
 
 # Mon
 Diventi ingests udp, icmp, and tcp Mon logs. Tracking the following fields
@@ -150,9 +151,9 @@ Diventi ingests udp, icmp, and tcp Mon logs. Tracking the following fields
 * dstport
 * protocol
 * duration
-* bytes
+* origin_bytes
+* resp_bytes
 * tcp_flags
-* Pkts
 
 # Implementing a New Event Format
 Data that can be expressed as a key and a value can be ingested by diventi.  
