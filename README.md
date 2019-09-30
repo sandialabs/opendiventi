@@ -29,6 +29,16 @@ $ echo never > /sys/kernel/mm/transparent_hugepage/defrag
 $ exit
 ```
 
+Additionally if you'd like to make these changes persist across system restarts then add the following to your `/etc/rc.local` file:
+```
+if test -f /sys/kernel/mm/transparent_hugepage/enabled; then
+   echo never > /sys/kernel/mm/transparent_hugepage/enabled
+fi
+if test -f /sys/kernel/mm/transparent_hugepage/defrag; then
+   echo never > /sys/kernel/mm/transparent_hugepage/defrag
+fi
+```
+
 After doing the above, install Diventi by running `make install`. It will prompt you to make necessary configurations if needed.
 
 # Usage
