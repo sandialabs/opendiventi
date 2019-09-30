@@ -48,7 +48,7 @@ install:
 
 .PHONY: test
 tests: $(TESTS)
-	. ../runTests.sh
+	. ../tests/runTests.sh
 
 test_%: $(OBJECTS) test_%.cpp diventi.cpp
 	$(CXX)  ../src/test_$*.cpp ../src/diventi.cpp $(OBJECTS) $(CPPFLAGS) $(CFLAGS) -o $@ $(LDFLAGS) -isystem $(BOOSTINCLUDE)
