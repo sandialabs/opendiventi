@@ -95,17 +95,17 @@ example of a script which finds all the first and second order connections of a 
 ```
 
 ## binary_ex.py
-	example of getting and parsing binary data from the server
+example of getting and parsing binary data from the server
 
 ## bin_functions.py
-	functions used by binary_ex
+functions used by binary_ex
 
 ## close_last_week.py
-	example of querying server using for all records on a given ip which occurred within the last week
+example of querying server using for all records on a given ip which occurred within the last week
 
 ## json_ex.py
-	example of getting and parsing json data from the server
+example of getting and parsing json data from the server
 
 ## query_subnet.py
-	example of a range query script
+example of a range query script
 
