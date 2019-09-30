@@ -2,7 +2,19 @@
 Most server options are configured using the `config.ini` file. This file has detailed instructions on how to tell Diventi what data sources to use.
 
 ### Data Sources
-These are configured in the `config.ini` file and tell Diventi how to collect data to ingest and what logFormat to use when ingesting it. A defintion of a source looks as follows:
+These are configured in the `config.ini` file and tell Diventi how to collect data to ingest and what format that data takes.
+
+| Argument| Effect|
+| :------| :----|
+| **[sourcex]** | source number given as x where x is in the range [1,255] |
+| **logFormat** | bro, mon, NetV5, netAscii, or NetV9. Informs Diventi of the type of data to be recieved from this source. |
+| **tag** | name of the source that will be printed in query responses. |
+| **inputDir** | directory which contains the files this source will ingest. |
+| **fileNameFormat** | regex which files to be ingested by this source much match. |
+| **syslogPort** | Port to recieve syslogs on. |
+| **syslogArgs** | Argument which defines the fields for a format like bro, when recieving over syslog. |
+
+Sources are constructed like this:
 
 ```
 [sourcex]
@@ -15,15 +27,6 @@ fileNameFormat= (string)
 syslogPort	= (int)
 syslogArgs	= (string)
 ```
-| Argument| Effect|
-| :------| :----|
-| **[sourcex]** | source number given as x where x is in the range [1,255] |
-| **logFormat** | bro, mon, NetV5, netAscii, or NetV9. Informs Diventi of the type of data to be recieved from this source. |
-| **tag** | name of the source that will be printed in query responses. |
-| **inputDir** | directory which contains the files this source will ingest. |
-| **fileNameFormat** | regex which files to be ingested by this source much match. |
-| **syslogPort** | Port to recieve syslogs on. |
-| **syslogArgs** | Argument which defines the fields for a format like bro, when recieving over syslog. |
 
 ### Server Options
 
@@ -55,7 +58,7 @@ Once you've installed you can run diventiServer -h from /build to for instructio
 * Mon
 * Any other format the developer implements
 
-# Bro-conn
+## Bro-conn
 Diventi can parse Bro logs which contain any combination of standard Bro conn log fields (a list can be found at https://www.bro.org/sphinx-git/scripts/base/protocols/conn/main.bro.html#type-Conn::Info).  
 However, it only records the following fields in the database:
 * ts
@@ -74,7 +77,7 @@ However, it only records the following fields in the database:
 Non-present fields are denoted by "-" or -1, for strings and numerical values, respectively, in the queries.  
 The database is indexed by IP, port, and timestamp. Currently Diventi supports lookup by timestamp and IP from either side (the user does not specify orig/resp).
 
-# Netflow v5
+## Netflow v5
 Diventi can parse both netflow binary and ascii. The ascii parsing is very similar to bro-conn parsing. Binary format parses the netflow headers and data fields to get the relevant data.  
 Information about netflow can be found at https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html  
 Diventi records the following fields in the database:
@@ -91,7 +94,7 @@ Diventi records the following fields in the database:
 
 Queries are the same as they are for bro-conn
 
-# Netflow v9
+## Netflow v9
 Diventi can currently only ingest Netflow v9 that is transmitted over syslog. Diventi holds records on the following fields if they are present within a template.
 * bytes(1)
 * packets(2)
@@ -106,7 +109,7 @@ Diventi can currently only ingest Netflow v9 that is transmitted over syslog. Di
 
 Note that the last two are options which are addons to the standard Netflow v9 format options. These are the start time of the conneciton and the end time in milliseconds. Slight modifications to the code base would be needed to track time using different options.
 
-# Mon
+## Mon
 Diventi ingests udp, icmp, and tcp Mon logs. Tracking the following fields
 * timestamp
 * srcaddr
@@ -120,4 +123,4 @@ Diventi ingests udp, icmp, and tcp Mon logs. Tracking the following fields
 * tcp_flags
 
 # Ingestion Sources
-Diventi supports event ingestion from two possible sources: files and the syslog port. File ingestion is good for older data or data from other networks. Syslog is for data received over UDP and is ideal for indexing live environments. See `config.ini` for how to set up data sources.
+Diventi supports event ingestion from two possible sources: files and the syslog port. File ingestion is good for older data or data from other networks. Syslog is for data received over UDP and is ideal for indexing live environments. See `config.ini` and the `Data Sources` section above for how to set up data sources.
