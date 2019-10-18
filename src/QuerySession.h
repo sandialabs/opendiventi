@@ -40,9 +40,8 @@ private:
 		Initialize variables
 			+ tkhandler: a pointer to class TokuHandler
 			+ sock: the tcp socket of the connection
-			+ req: the request, specialized ZZ
+			+ req: the request
 			+ res: used for formulating the response to the user
-			+ buff: a flat_buffer ZZ
 	*/
 
 	Control *control;

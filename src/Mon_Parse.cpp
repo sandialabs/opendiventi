@@ -105,7 +105,7 @@ MonFormat::MonFormat(transProto p){
         mon_proto = p;
 
         // Statically define the handlers for each field.
-        //  2019-01-01T18:10:14-Tue 0 14.2.41.5 -> 4.2.97.2 39640 => 80 SsADF. 603 +> 1648
+        //  2019-01-01T18:10:14-Tue 0 10.12.41.5 -> 10.2.0.2 39640 => 80 SsADF. 603 +> 1648
         //  
         fieldHandler[0] = tsHandler;
 
@@ -133,7 +133,6 @@ MonFormat::MonFormat(transProto p){
         if (p==UDP) {
                 // Set up if UDP or ICMP
                 fieldHandler[8] = origBytesHandler;
-                // TODO ingest number of packets.
                 lastToken=8;
                 return;
         }

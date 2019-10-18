@@ -80,7 +80,6 @@ Watcher::~Watcher(){
  * Provides a safe way to shut down the watcher thread.
  * Can be run synchronously or asynchronously.
  */
- // TODO: is asynch safe and needed?
 void Watcher::cleanupWatcher(bool asynch){
 	if (active){
 		// Send an interrupt to the watcher thread
@@ -117,7 +116,7 @@ int Watcher::getWD(std::string path){
 	mWatch->lock();
 	try{
 		wd = revWatchList->at(path);
-	} catch(...){} // TODO: what is the purpose of this statement
+	} catch(...){}
 	mWatch->unlock();
 
 	return wd;
@@ -148,7 +147,7 @@ int Watcher::watchDir(std::string dir) {
 
     	// Be verbose on failure
     	if (wd == -1){
-    		char errStr[256];	// TODO: change to not magic numbers
+    		char errStr[256];
 			err = strerror_r(errno, errStr, 256);
 			err = err;
 			// This error is often fixed by increasing the number of files inotify can handle

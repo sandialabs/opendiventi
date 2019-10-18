@@ -76,7 +76,7 @@ public:
 	transProto proto;
 	connEnum conn_state;
 
-	// TODO change these to static strings with given sizes.
+	// would run better if static strings with fixed size
 	std::string  service, history,
 				orig_l2_addr, resp_l2_addr, tunnel_parents;
 

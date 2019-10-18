@@ -30,11 +30,7 @@ bool Basic::parseFileFormat(std::string file, logFormat **format){
 					// parseFields(line, format);
 					*format = createFormat(*line);
 					done = true;
-				} //else if (line->substr(0, 10) == "#separator"){
-
-				// } else if (line->substr(0, 12) == "#unset_field"){
-
-				// }
+				}
 			} catch(std::out_of_range){}	// Ignore substr out of range errors
 			delete line;
 		}
@@ -45,7 +41,6 @@ bool Basic::parseFileFormat(std::string file, logFormat **format){
 //------------------------------------
 //Function to parse bro buffers (public)
 int Basic::parseBuf(char * buf, int size, logFormat **f, std::list<logEntry *> *results){
-	// TODO put in a good min line size.
 	BasicFormat *fp = dynamic_cast<BasicFormat *>(*f);
 	BasicEntry *e = new BasicEntry();
 	if (size< 10) {
@@ -178,7 +173,7 @@ std::string Basic::getKey(std::string fileName){
 	do{
 		// If there are no more lines to get and no valid line has been found
 		if (!ds.good()){
-			ret = fileName; // TODO fix to work with ds.getLine(), which returns a string*
+			ret = fileName;
 			break;
 		}
 		debug(99, "Skipping line '%s'\n", ret.c_str());

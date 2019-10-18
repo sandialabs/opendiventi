@@ -105,7 +105,6 @@ public:
 };
 
 #if 1
-// TODO - tmk - do these need to be here?
 int TimeHandler(logEntry *e, char *s);
 int OIPHandler(logEntry *e, char *s);
 int OPortHandler(logEntry *e, char *s);

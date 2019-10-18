@@ -59,19 +59,13 @@ long int DiventiStream::tellPos(){
  *
  */
 void DiventiStream::seekPos(long pos){
-	// --------------------------------------------------------
-	// TODO: Is this performance bottleneck / causing other problems?
-	// --------------------------------------------------------
 	if (isGZ){	// Can't seek in gzipped files. This is a reasonable but not perfect solution.
 		std::string discard;
 		while (activeFile->tellg() < pos){
 			if (!activestream->good()){
-				// debug(10, "Error: file bad before requested seek\n");
 				break;
 			}
-			// debug(60, "Scanning gzipped file %li/%li\n", (long)activeFile->tellg(), pos);
 			std::getline(*activestream, discard);
-			// debug(60, "Discarding line '%s'\n", discard.c_str());
 		}
 	} else{
 		activeFile->seekg(pos);
@@ -137,8 +131,6 @@ int DiventiStream::getLine(char * buf){
 		}
 	}
 
-	// TODO trap for empty line and \n and #
-
 	// get amount of data loaded.
 	ret = strlen(buf);
 	return ret;
@@ -183,7 +175,7 @@ int DiventiStream::getData(char *buf, int size) {
 		}
 
 	}
-	// TODO trap for empty line and \n and #
+
 	//calculate the number of bytes(characters) read
 	ret = lastPos - ret;
 	if( ret < 0 ) {

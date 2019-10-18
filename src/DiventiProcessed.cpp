@@ -89,7 +89,7 @@ unsigned long int DiventiProcessed::getLastPos(std::string key){
  */
 bool DiventiProcessed::setLastPos(std::string key, long int pos){
 	if (pos < 0){
-		// TODO: Removed fileName from this error message. Add that error handling outside this function
+		// fileName printing handled outside this function
 		debug(50, "Error setting last pos: pos (%ld) must be positive or 0\n", pos);
 		return false;
 	}
@@ -104,33 +104,6 @@ bool DiventiProcessed::setLastPos(std::string key, long int pos){
 	}
 }
 
-/*
- * Retrieves the key for a file. The key is the first non-empty, non-comment line.
- * If no such lines exist, returns the file name.
- */
-// std::string DiventiProcessed::getKey(std::string fileName){
-// 	std::string* line;
-// 	std::string ret = "";
-// 	// Open the file
-// 	DiventiStream ds(fileName);
-// 	do{
-// 		// If there are no more lines to get and no valid line has been found
-// 		if (!ds.good()){
-// 			ret = fileName; // TODO fix to work with ds.getLine(), which returns a string*
-// 			break;
-// 		}
-// 		debug(99, "Skipping line '%s'\n", ret.c_str());
-
-// 		// Read a line
-// 		line = ds.getLine();
-// 		if (line != nullptr){
-// 			ret = *line;
-// 			delete line;
-// 		}
-// 	} while (ret.length() < 1 || ret.substr(0, 1) == "#");
-
-// 	return ret;
-// }
 
 unsigned long int DiventiProcessed::getMaxPos(std::string fileName){
 	struct stat buf;
@@ -138,7 +111,7 @@ unsigned long int DiventiProcessed::getMaxPos(std::string fileName){
 	// int fd = open(fileName.c_str(), O_RDONLY);
 
 	if (stat(fileName.c_str(), &buf) == -1){
-		char errStr[256];	// TODO: change to not magic numbers
+		char errStr[256];
 		err = strerror_r(errno, errStr, 256);
 		err = err;
 		debug(60, "Failed to find file length: %s\n", errStr);

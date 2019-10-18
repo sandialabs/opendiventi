@@ -96,10 +96,6 @@ void handle_cli(double start, Control *control) {
 
 	sigaction(SIGINT, &sigIntHandler, NULL);
 	// ------------------------------
-
-	// Ensure all of the insert threads can signal 
-	//   handler when they're done
-	// TODO
 	
 	std::cout << "Enter 'help' for commands  or 'shutdown' to shutdown.\n";
 	try {
@@ -162,7 +158,7 @@ void handle_cli(double start, Control *control) {
 				printf("Last Rate: %s\n", control->ins_to_str(control->getLastRate() * 1e9).c_str());
 				// q = "statistics";
 				
-				// TODO -- sampler's most recent results.
+				// sampler's most recent results.
 				// most recent rates & overall rates
 				// threads running & check status
 			}

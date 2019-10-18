@@ -47,7 +47,7 @@ bool Bro::parseFileFormat(std::string file, logFormat **format){
 
 //Function to parse bro buffers (public)
 int Bro::parseBuf(char * buf, int size, logFormat **f, std::list<logEntry *> *results){
-	// TODO put in a good min line size.
+
 	BroFormat *fp = dynamic_cast<BroFormat *>(*f);
 	BroEntry *e = new BroEntry();
 	if (size< 20) {
@@ -194,7 +194,7 @@ std::string Bro::getKey(std::string fileName){
 	do{
 		// If there are no more lines to get and no valid line has been found
 		if (!ds.good()){
-			ret = fileName; // TODO fix to work with ds.getLine(), which returns a string*
+			ret = fileName;
 			break;
 		}
 		debug(99, "Skipping line '%s'\n", ret.c_str());
@@ -216,6 +216,5 @@ logFormat *Bro::createFormat(std::string fields) {
 }
 
 std::string Bro::getStats() {
-	// TODO: will eventually want to put counts of dropped packets and such things here
 	return "";
 }

@@ -186,8 +186,7 @@ Value *Mon::createValue(DBT *dbt) {
 	return value;
 }
 
-// ts                      orig_ip     ->   resp_ip         ports     flags   bytes       duration";
-// 2019-01-01T18:09:57-Tue 134.252.41.95 -> 134.252.67.46 35504 => 22 SsADF. 3485 +> 4963
+
 std::string Mon::getHeader() {
 	return "ts             orig_ip           o_port      resp_ip       r_port              src proto   duration    orig_bytes     resp_bytes      flags";
 }
@@ -205,7 +204,7 @@ std::string Mon::getKey(std::string fileName){
 	do{
 		// If there are no more lines to get and no valid line has been found
 		if (!ds.good()){
-			ret = fileName; // TODO fix to work with ds.getLine(), which returns a string*
+			ret = fileName;
 			break;
 		}
 		debug(99, "Skipping line '%s'\n", ret.c_str());
@@ -246,6 +245,5 @@ logFormat *Mon::createFormat(std::string file) {
 }
 
 std::string Mon::getStats() {
-	// TODO: will eventually want to put counts of dropped packets and such things here
 	return "";
 }

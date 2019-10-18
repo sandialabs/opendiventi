@@ -33,7 +33,6 @@ public:
 private:
 	DB_ENV* env;
 	DB* db;
-	//TODO need db6
 	const char* DB_FILE = "diventiV4";
 	const char* DEFAULT_DIR = "env";
 	const int MAX_DB_FILENAME_LENGTH = 100;

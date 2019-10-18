@@ -73,7 +73,6 @@ public:
 	uint32_t numDropShort = 0;
 	uint32_t numFlowDropShort = 0;
 
-	// TODO: does moving these here break anything?
 	//map from template IDs to formats
 	std::map<uint16_t, NetV9_Format *> templates;
 	std::map<uint16_t, NetV9_Format *> oldTemplates;

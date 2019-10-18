@@ -155,7 +155,6 @@ void QuerySession::send(http::response<http::string_body>& msg){
  }
 
 //Checks to ensure that the query actually has an ip address
-// TODO: move this to checking within the [format]_functions files
 bool QuerySession::validateQuery(std::map<std::string, std::string> &args){
 	if (args.count("ip") == 0){
 		error(http::status::bad_request, "Invalid query... \"ip\" argument required");
@@ -197,7 +196,7 @@ void QuerySession::resolveQuery(){
 		debug(70, "starting key: %s", startKey->toExtendedString().c_str());
 		endKey = getLastKey(args);
 		debug(70, "end key: %s", endKey->toExtendedString().c_str());
-		_type = type(args); //call the format function which returns whether json is to be used or not TODO: 3 options - good, json, binary
+		_type = type(args);
 	} catch(std::invalid_argument &e){
 		error(http::status::bad_request, "The server was unable to parse the arguments of your http request. Please try again.\n");
 		debug(10, "Had error parsing arguments in http request\n");
@@ -210,7 +209,7 @@ void QuerySession::resolveQuery(){
 	} catch(std::runtime_error &e){ //if Tokuhandler throws a error 
 		error(http::status::internal_server_error, "The server experienced an internal error. Please try again.\n");
 		debug(10,"Had error processing query\n");
-		return;	// TODO: is it easier to read if later code is moved into the try?
+		return;
 	}
 	
 	uint64_t numReturned = answer->size();
@@ -339,7 +338,6 @@ std::string QuerySession::formatRes(std::vector <KeyValuePair> *answer, int type
 		//call specialized functions which return the data in binary form
 		//do this for each answer
 		//Need to loop through each element because sometimes we have 0 data which is a null terminator
-		//TODO: Is there a better way to do this?
 		for( unsigned int i = 0; i < answer->size(); i++ ) {
 			Key *key = answer->at(i).getKey();
 			Value *value = answer->at(i).getValue();
@@ -349,7 +347,6 @@ std::string QuerySession::formatRes(std::vector <KeyValuePair> *answer, int type
 			for ( int x = 0; x < key->KEY_BYTES; x++ ) {
 				body += keyStr[x];
 			}
-            // TODO -tmk-tb-fix -- get value bytes.
 			//for ( int x = 0; x < value->VALUE_BYTES; x++ ) {
             for ( int x = 0; x < 28; x++ ) {
 				body += valStr[x];

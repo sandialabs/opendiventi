@@ -111,7 +111,6 @@ bool InsertThread::readLog(){
 		return false;
 	}
 	
-	//TODO: Move this and other checks like it to be within the Bro and NetAscii files
 	if(buf[0] == '#') {
 		debug(85, "Header line read when reading log line\n");
 		return true;

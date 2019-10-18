@@ -92,15 +92,10 @@ public:
 	virtual Key *operator=(const Key *other) = 0;
 	virtual bool operator==(const Key& other) = 0;
 	virtual bool operator!=(const Key& other) = 0;
-	// todo-tmktb -- moved to private static int const within concrete classes
 	int KEY_BYTES;
 };
 
 class Value {
-
-    // todo-tmktb -- why are all of these function defined
-    //     do we need == and != for value?
-    //     do we want to require a constructor
     
 public:
 	virtual ~Value() = 0;

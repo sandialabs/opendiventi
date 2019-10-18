@@ -17,7 +17,6 @@ std::string const  Mon_Value::flagStr[] = {"S", "s", "A", "D", "F", "R"};
 
 
 
-// TODO: these should be put to a common place.
 //   static here specifies that these functions are scoped to inside this file only.
 //     --could these be put into a header file or the base class for value?
 //
@@ -264,7 +263,6 @@ std::string Mon_Value::toJsonString() {
 /*
 	Function to return binary representation of the data
 			ewest - 06/23/18 updated: 07/27/18
-			TODO: evaluate whether it is prudent to simply return the DBT to the user
 				pros:
 					easier/faster on our end
 					more data compression
@@ -275,8 +273,6 @@ std::string Mon_Value::toJsonString() {
 uint8_t *Mon_Value::toBinary() {
 	uint8_t *x;
 	x = new uint8_t[BYTES_FOR_BINARY_REP];
-        // TODO -- improve the constants here It should pull from the POS
-        //  Also add first byte for source.
 	x[0] = getProtocol();
 	uint32_t dur = getDuration();
 	dur = htonl(dur);

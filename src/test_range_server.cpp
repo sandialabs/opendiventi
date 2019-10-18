@@ -194,7 +194,6 @@ int main(int argc, char* argv[]) {
 		debug(0, "TEST FAILED\nQuery response is different from insert.\n");
 		debug(10, "NEW: %s\n\n\n\n\n\n", updated.c_str());
 		debug(10, "OLD: %s\n", original.c_str());
-		//TODO: Run a diff on the strings
 		exit(1);
 	}
 	delete server;

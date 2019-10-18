@@ -36,10 +36,9 @@ public:
 	Basic_Key(const Key& key);
 	~Basic_Key();
 	DBT *getDBT() const;
-	char *getDate(char *time) {return time;}; //ZZ will want to remove this from diventi.h
+	char *getDate(char *time) {return time;};
 	uint32_t getAltitude();
 
-	// Key reverse();	// TODO: would this be useful?
 	std::string toString();
 	std::string toVerboseString();
 	std::string toExtendedString();
@@ -63,7 +62,7 @@ private:
 	const std::size_t KEY_SIZE = ALTITUDE_POS + sizeof(uint32_t);
 
 	const int KEY_MAX_CHAR_LENGTH = 500; 
-	const int INIT_KEY_DATA_LEN = 64; // TODO calculate this correctly from config.
+	const int INIT_KEY_DATA_LEN = 64;
 
 	const int KEY_LEN2 = sizeof(BASIC_rawKey);
 };

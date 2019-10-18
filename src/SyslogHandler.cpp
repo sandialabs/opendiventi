@@ -31,50 +31,6 @@
 
 #include <boost/regex.hpp>
 
-/**
-Function to create the logFormat which syslogHandler uses to grab data from the buffer
-The argument subFormat includes information specific to the format that tells logFormat
-	about the data it's going to be recieving
-
-For example - in mon this subFormat will be if mon is recieving tcp, udp, or icmp data
-
-ewest - 03/27/19
-**/
-// static logFormat *createFormat(std::string subFormat, std::string format) {
-// 	if( format == "bro" ){
-// 		return new BroFormat(subFormat);
-// 	}
-// 	else if( format == "basic" ){
-// 		return new BasicFormat(subFormat);
-// 	}
-// 	else if( format == "NetV5" ){
-// 		return new NetFormat(subFormat);
-// 	}
-// 	else if( format == "net" ) {
-
-// 	}
-// 	else if( format == "v9" ){
-// 		return new NetV9_Format();
-// 	}
-// 	else if( format == "mon" ){
-// 		transProto p=UNKNOWN_TRANSPORT;
-        
-//         if ( subFormat == "tcp" ){
-//                 p=TCP;
-//         }
-//         if ( subFormat == "udp" ){
-//                 p=UDP;
-//         }
-//         if ( subFormat == "icmp" ){
-//                 p=ICMP;
-//         }
-// 		return new MonFormat(p);
-// 	}
-// 	else{
-// 		//defualt to bro format
-// 		return new BroFormat(subFormat);
-// 	}
-// }
 
 static AbstractLog *getLogFormat(std::string format) {
 	if (format == "bro")
@@ -168,12 +124,7 @@ unsigned int SyslogHandler::getNextLine(char * buf, const unsigned int maxSize, 
 	unsigned int s=0;   // the size of the line
 
 
-	// TODO - check for empty and call read?
-	//   - is that the common case?
-	// TODO consider moving # into this routine.
-
 	// Assign format to the one for syslog
-	// TODO make this go away.
 	*f = cur_format;
 
 	// lock syslog-bufferg.
@@ -315,7 +266,7 @@ unsigned int SyslogHandler::getNextLine(char * buf, const unsigned int maxSize, 
 	//     else no data return 0.
 	s = readSocket();
 	if (s!=0)
-		goto findEol;  // TODO find a better way or enjoy irratating purists (TB).
+		goto findEol;
 
 	m.unlock();
 	return 0;
@@ -383,12 +334,8 @@ unsigned int SyslogHandler::getNextBytes(char * buf, const unsigned int size, lo
 	unsigned int s=0;   // the size of the buffer
 
 
-	// TODO - check for empty and call read?
-	//   - is that the common case?
-	// TODO consider moving # into this routine.
-
 	// Assign format to the one for syslog
-	// TODO make this go away.
+
 	*f = cur_format;
 
 	// lock syslog-bufferg.

@@ -18,10 +18,7 @@ public:
 	unsigned long int getLastPos(std::string key);
 	bool setLastPos(std::string key, long int pos);
 	unsigned long int getMaxPos(std::string fileName);
-	// std::string getKey(std::string fileName);
-	// std::string getProcessed();
-
-	//TODO: overload [] operator?
+	
 private:
 	
 	std::unordered_map<std::string, unsigned long int> processed;

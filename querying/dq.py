@@ -14,7 +14,7 @@ Some examples:
 ------------
 IP point query
   dq <IP>
-  dq  140.221.252.19      # search for just the .19 IP
+  dq  10.50.1.19      # search for just the .19 IP
 
 
 Time Range
@@ -23,7 +23,7 @@ Time Range
 
 
 IP range examples
-   dq  140.221.252.0/25    # search for .0-.127 subnet etc...
+   dq  10.221.22.0/25    # search for .0-.127 subnet etc...
    dq -r <hiIP>  <lowIP>   # will search for all IPs between lowIP and hiIP  (inclusive)
    dq -r 255.255.255.255 0.0.0.0    # will search for all IP addresses seen.
 

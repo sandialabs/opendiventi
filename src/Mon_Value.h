@@ -15,8 +15,6 @@
 //#include "Mon_Parse.h"
 
 
-
-// TODO -- visit why this is here?  Should this come from a common header?
 struct __toku_dbt;
 typedef struct __toku_dbt DBT;
 

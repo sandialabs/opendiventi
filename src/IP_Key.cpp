@@ -360,16 +360,6 @@ void IP_Key::packData(struct in_addr* ipA, uint64_t timestamp,
 		throw std::invalid_argument("A null pointer was provided in one of the IPs.");
 	}
 
-#if 0
-	// TODO -- fix assignments using union. -- data is not in same format... 
-	// All members must be in big endian for keyCompare to work	
-	keyData.key.ipA  =   htobe32(ntohl(ipA->s_addr));	
-	keyData.key.ts =  htobe32(timestamp);
-	keyData.key.portA =  htobe16(portA);
-	keyData.key.ipB = htobe32(ntohl(ipB->s_addr));
-	keyData.key.portB = htobe16(portB);
-	keyData.key.rev =  reversed;
-#endif
 
 	unsigned long aAddr, bAddr;
 	byte *ret;
@@ -429,8 +419,6 @@ static uint64_t endTime(std::map<std::string, std::string> &args){
 		return std::stoul(args["endTime"]);
 	}
 }
-
-//ZZ TODO - do we actually need seperate functions for these operations?
 
 //Function that parses the url arguments and returns the Key which denotes the
 //	first valid index

@@ -78,8 +78,6 @@ TokuHandler::TokuHandler() {
 	strncpy(dbdir, DEFAULT_DIR, MAX_ENV_DIRNAME_LENGTH);
 	dbdir[MAX_ENV_DIRNAME_LENGTH - 1] = '\0';
 
-	//TODO: Complain if the file is too long
-	//TODO: Replace strncpy with diventi-defined strcpy_safe
 	int r;
 
 	int envOpenFlags = DB_PRIVATE|DB_INIT_MPOOL|DB_INIT_LOCK;
@@ -91,7 +89,6 @@ TokuHandler::TokuHandler() {
 	if(OPTIONS.dataBaseDir != nullptr) {
 		strncpy(dbdir, OPTIONS.dataBaseDir, MAX_ENV_DIRNAME_LENGTH);
 		dbdir[MAX_ENV_DIRNAME_LENGTH - 1] = '\0';
-		//TODO: Replace strncpy with diventi-defined strcpy_safe
 	}
 
 	if(OPTIONS.create) { //DEFAULT TRUE
@@ -108,13 +105,6 @@ TokuHandler::TokuHandler() {
 		envOpenFlags |= DB_THREAD;
 	}
 
-	if(OPTIONS.diventiThreaded) { //DEFAULT FALSE
-		//TODO threading
-	}
-
-	if(OPTIONS.ipv6) { //DEFAULT FALSE
-		//TODO ipv6
-	}
 
 	r = db_env_create(&env, 0);
 	if(r != 0) {
@@ -287,7 +277,6 @@ bool TokuHandler::put(KeyValuePair* pair) {
 	return ret;
 }
 
-// TODO -- create put that doesn't require copy 
 //void TokuHandler::put(Key key, Value value) {
 bool TokuHandler::put(const Key & key, const Value & value) {
 	int r = db->put(db, NULL, key.getDBT(), value.getDBT(), 0);
@@ -309,8 +298,6 @@ bool TokuHandler::put(const Key & key, const Value & value) {
 std::vector<KeyValuePair>* TokuHandler::get(Key* start, Key* end) {
 	int r; //for error catching purposes
 	std::vector<KeyValuePair>* ret = new std::vector<KeyValuePair>(); //what will eventually be returned
-	//what are DBC, DBT, and so on ZZ
-		//for interacting with the berkley db
 
 	DBC* cursor = nullptr;
 	DBT* cursorValue = new DBT();

@@ -155,7 +155,6 @@ std::string Bro_Value::toString() {
 	char retCharArr[VAL_MAX_CHAR_LENGTH];
 	
 	//fill in char array
-        // todo add in getSource() to dynamically pull type.
 	int charsToBeWritten;
 	charsToBeWritten = sprintf(retCharArr,
 		"%-12s   %-5s   %-8s   %-17s  %-17s  %-9s   %-10s  %-10s  %18s",	// source tag, protocol, duration, orig bytes, resp bytes, conn state, orig packts, resp packets, uid
@@ -266,12 +265,10 @@ std::string Bro_Value::toJsonString() {
 }
 
 /*
-TODO: should we include source tag when returning this data?
 downside is that the length of the tag is unknown... so extra processing
 
 	Function to return binary representation of the data
 			ewest - 06/23/18 updated: 07/27/18
-			TODO: evaluate whether it is prudent to simply return the DBT to the user
 				pros:
 					easier/faster on our end
 					more data compression

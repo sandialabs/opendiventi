@@ -77,7 +77,6 @@ static uint16_t countHandler(uint8_t *s) {
 
 //-----------------------
 //Functions for extracting data from the beginning of flowSets
-// TODO - tmktb -- these might be better as member functions on format or entry?
 
 static uint16_t FlowIDHandler(uint8_t *s) {
 	int16_t id = 0;
@@ -349,142 +348,9 @@ KeyValuePair *NetV9::createPair(uint8_t index, std::list<logEntry*> *results, ui
 //FUNCTIONALITY CURRENTLY DISABLED as it doesn't work with the current
 //	grab one record protocol
 int NetV9::getRawData(char * /*buf*/, DiventiStream */*stream*/) {
-	//set global which controls which read function to use
-	// mGet.lock();
-	// stream->readIt = &std::istream::read;
-	// uint16_t length;
-	// int size;
-	// if( flowNum == 0 ) {
-	// 	//Read in the header plus the next two bytes
-	// 	size = stream->getData(buf, 20);
-	// 	debug(80, "size of read: %d\n", size);
-	// 	if(size == 20) {
-	// 		debug(50, "handling a header\n");
-	// 		versionHandler((uint8_t *)buf);
-	// 		if(version != 9) {
-	// 			printf("Unexpected netflow version %u ... data may be corrupted\n", version);
-	// 			numDropVer += 1;
-	// 			mGet.unlock();
-	// 			return 0;
-	// 		}
-	// 		countHandler((uint8_t *)buf);
-	// 		uptimeHandler((uint8_t *)buf);
-	// 		sequenceHandler((uint8_t *)buf);
-	// 		SourceIDHandler((uint8_t *)buf);
-			
-	// 		//Now read the first FlowSet in the packet
-	// 		stream->getData(buf, 4);
-	// 		length = LengthHandler((uint8_t *)buf) - 4; //The length includes the bytes we've already gotten
-	// 		debug(50, "length of flowSet: %u\n", length);
-	// 		size = stream->getData(buf+4, length) + 4;
-			
-	// 		//somehow need to combine the last 4 bytes of buf with the new buf
-	// 		// flowNum -= 1;
-	// 		mGet.unlock();
-	// 		return size;
-	// 	}
-	// 	mGet.unlock();
-	// 	return 0;
-	// }
-	// else {
-	// 	debug(40, "handling %u flows.\n", flowNum);
-	// 	//Now read the first FlowSet in the packet
-	// 	stream->getData(buf, 4);
-	// 	length = LengthHandler((uint8_t *)buf) - 4; //The length includes the bytes we've already gotten
-	// 	debug(50, "length of flowSet: %u\n", length);
-	// 	size = stream->getData(buf + 4, length) + 4;
-	// 	debug(75, "Temp buffer: %s, total Size: %d\n", buf, size);
-	// 	//somehow need to combine the last 4 bytes of buf with the new buf
-	// 	// flowNum -= 1;
-	// 	mGet.unlock();
-	// 	return size;
-	// }
+	
 	return 0;
 }
-
-//Function to read bytes from the udp buffer
-// unsigned int NetV9::getSyslogData(SyslogHandler *slh, char *buf, logFormat **/*fp*/) {
-// 	//function to read bytes already well established
-// 	//just call it feeding the number of bytes to read
-// 	mGet.lock();
-// 	OPTIONS.syslogOffset = 0;
-// 	uint16_t length;
-// 	if( flowNum == 0 ) {
-// 		//loop through packets until you find a good one
-// 		while(true) {
-// 			debug(60, "handling a header\n");
-// 			sysSize = slh->getNextPacket(sysPacket, sysMaxSize);
-// 			if (sysSize > 0) {
-// 				sysOffset = 0;
-// 				debug(80, "size of packet recieved: %d\n", sysSize);
-// 				versionHandler((uint8_t *)sysPacket);
-// 				if(version != 9) {
-// 					debug(1, "Unexpected netflow version %u ... packet corrupted, discarding\n", version);
-// 					numDropVer += 1;
-// 					continue;
-// 				}
-// 				countHandler((uint8_t *)sysPacket);
-// 				uptimeHandler((uint8_t *)sysPacket);
-// 				sequenceHandler((uint8_t *)sysPacket);
-// 				SourceIDHandler((uint8_t *)sysPacket);
-				
-// 				sysOffset += 20;
-
-// 				//Now read the first FlowSet in the packet
-// 				// slh->getNextBytes(buf, 4, fp);
-// 				length = LengthHandler((uint8_t *)sysPacket+sysOffset); //The length includes the bytes we've already gotten
-// 				debug(60, "length of flowSet: %u\n", length);
-// 				// size = slh->getNextBytes(buf+4, length, fp) + 4;
-				
-// 				//TODO: can we do something better than memcpy?
-// 				memcpy(buf, sysPacket+sysOffset, length);
-// 				// buf = sysPacket + sysOffset;
-// 				sysOffset += length;
-// 				flowNum -= 1;
-// 				//The amount of data ingested over the course of the entire packet = size of packet
-// 				//Then we found what we expected
-// 				if(flowNum == 0) {
-// 					if(sysOffset != sysSize) {
-// 						debug(5, "WARNING: Encountered a packet of the wrong size\n\t\t\tSize we parsed: %u, actual size expected: %u\n", sysOffset, sysSize);
-// 						//Currently no other way to recover from this accept to clear the buffer completely
-// 						// slh->clearBuffer();
-// 					}
-// 				}
-// 				mGet.unlock();
-// 				return length;
-// 			}
-// 			mGet.unlock();
-// 			return 0;
-// 		}
-// 	}
-// 	else {
-// 		debug(60, "handling %u flows.\n", flowNum);
-// 		//Now read the first FlowSet in the packet
-// 		// slh->getNextBytes(buf, 4, fp);
-// 		length = LengthHandler((uint8_t *)sysPacket+sysOffset); //The length includes the bytes we've already gotten
-// 		debug(50, "length of flowSet: %u\n", length);
-// 		// size = slh->getNextBytes(buf + 4, length, fp) + 4;
-// 		debug(75, "length of flowSet: %u\n", length);
-		
-// 		//TODO: can we do something better than memcpy?
-// 		memcpy(buf, sysPacket + sysOffset, length);
-// 		// buf = sysPacket + sysOffset;
-// 		sysOffset += length;
-// 		flowNum -= 1;
-		
-// 		//The amount of data ingested over the course of the entire packet = size of packet
-// 		//Then we found what we expected
-// 		if(flowNum == 0) {
-// 			if(sysOffset != sysSize) {
-// 				debug(5, "WARNING: Encountered a packet of the wrong size\n\t\t\tSize we parsed: %u, actual size expected: %u\n", sysOffset, sysSize);
-// 				//Currently no other way to recover from this accept to clear the buffer completely
-// 				// slh->clearBuffer();
-// 			}
-// 		}
-// 		mGet.unlock();
-// 		return length;
-// 	}
-// }
 
 unsigned int NetV9::getSyslogData(SyslogHandler *slh, char *buf, logFormat **/*fp*/) {
 	int size = 0;

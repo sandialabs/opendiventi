@@ -2,8 +2,6 @@
 This script is used to test the functionality of the new computer readable
 json output
 
-Currnently it is simply another means for Evan to mess around with the json side of things
-
 USAGE:
 python3 json_ex.py diventiIP queryIP
 """

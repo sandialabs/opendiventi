@@ -167,7 +167,7 @@ std::string* FileHandler::getNextLine(logFormat **f){
 		// If no active file
 		if (!stream->good()){
 			// Attempt to open a file
-			while ( (ec = setActiveStream()) == -1 ){ // TODO: shift this to another function
+			while ( (ec = setActiveStream()) == -1 ){
 				debug(10, "Error opening file\n");
 			}
 
@@ -211,7 +211,7 @@ int FileHandler::getNextBuf(char* buf, logFormat **f, AbstractLog **src){
 
 	int ret=0;;
 	int ec;
-	// TODO look at reducing this locking.
+	
 	mNextLine->lock();
 	// Repeat while the line is invalid
 	while (ret == 0) {
@@ -219,7 +219,7 @@ int FileHandler::getNextBuf(char* buf, logFormat **f, AbstractLog **src){
 		// If no active file
 		if (!stream->good()){
 			// Attempt to open a file
-			while ( (ec = setActiveStream()) == -1 ){ // TODO: shift this to another function
+			while ( (ec = setActiveStream()) == -1 ){
 				debug(10, "Error opening file\n");
 			}
 
@@ -312,8 +312,7 @@ void FileHandler::queueFile(std::string path, short source) {
 /*
  * Attempts to set the active stream.
  * Returns 0 on success, -1 on failure to open a file,
- * and -2 if there are no more files. 
- TODO: define an enum for setActiveStream status
+ * and -2 if there are no more files.
  */
 int FileHandler::setActiveStream() {
 	int ret = 0;
@@ -398,7 +397,7 @@ int FileHandler::setActiveStream() {
 			// Otherwise, it has already been cleaned up, so just set the return value to -1
 			debug(10, "Failed to open file: %s\n", next.c_str());
 			ret = -1;
-		} // TODO: should something else occur (eg requeueing)?
+		}
 	}
 
 	mWaiting->unlock();
@@ -409,7 +408,6 @@ int FileHandler::setActiveStream() {
  * Reads a directory and handles subdirectories and files inside it.
  * Attempts to add discovered files to the waiting queue.
  */
- // TODO: skip hidden directories
 void FileHandler::handleDir(std::string dir, short source) {
 	debug(20, "handling dir: %s\n", dir.c_str());
 	if(!boost::filesystem::exists(dir)) {

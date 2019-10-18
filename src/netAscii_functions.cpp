@@ -47,7 +47,7 @@ bool NetAscii::parseFileFormat(std::string file, logFormat **format){
 int NetAscii::parseBuf(char * buf, int size, logFormat **f, std::list<logEntry *> *results){
 	NetFormat *fp = dynamic_cast<NetFormat *>(*f);
 	NetEntry *e = new NetEntry();
-	// TODO put in a good min line size.
+
 	if (size< 20) {
 		debug(20,"Got line too small: size: %d\n\t\'%s\'\n",
 			  size,buf);
@@ -187,7 +187,7 @@ std::string NetAscii::getKey(std::string fileName){
 	do{
 		// If there are no more lines to get and no valid line has been found
 		if (!ds.good()){
-			ret = fileName; // TODO fix to work with ds.getLine(), which returns a string*
+			ret = fileName;
 			break;
 		}
 		debug(99, "Skipping line '%s'\n", ret.c_str());

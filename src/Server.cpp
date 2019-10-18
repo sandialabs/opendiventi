@@ -77,7 +77,6 @@ void Server::handleAccept(const boost::system::error_code& ec){
 		debug(10, "Connection accepted\n");
 		//call querySession constructor with an argument of the socket
 		qs = new QuerySession(control, socket);
-		//io_service.post ? ZZ
 		ioserv->post( boost::bind(&QuerySession::run, qs) );
 	}
 	else {
@@ -91,7 +90,7 @@ void Server::handleAccept(const boost::system::error_code& ec){
 /*
 	Function for taking requests from clients
 */
-int Server::listen(const std::string& ip, uint port){ //TODO: ip really necessary?
+int Server::listen(const std::string& ip, uint port){
 	try{
 		boost::asio::ip::tcp::endpoint endpt( boost::asio::ip::address::from_string( ip ), port);
 		acceptor->open(endpt.protocol());

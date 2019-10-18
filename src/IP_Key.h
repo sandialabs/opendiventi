@@ -54,7 +54,7 @@ public:
 	const char * timeStr();
 	std::string ipOStr();
 	std::string ipRStr();
-	// Key reverse();	// TODO: would this be useful?
+
 	std::string toString();
 	std::string toVerboseString();
 	std::string toExtendedString();
@@ -88,7 +88,7 @@ private:
 	
 
 	const static int KEY_MAX_CHAR_LENGTH = 2000; 
-	const static int INIT_KEY_DATA_LEN = 64; // TODO calculate this correctly from config.
+	const static int INIT_KEY_DATA_LEN = 64;
 
 	const static int KEY_LEN2 = sizeof(IPv4_rawKey);
 public:

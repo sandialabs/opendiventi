@@ -322,7 +322,7 @@ std::string NetV5::getKey(std::string fileName){
 	// If there are no more lines to get and no valid line has been found
 	if (!ds.good()){
 		debug(15, "WARNING: using filename %s for key\n", fileName.c_str());
-		return fileName; // TODO fix to work with ds.getLine(), which returns a string*
+		return fileName;
 	}
 
 	// In this case we want to read the header(24 bytes) as that should unique

@@ -84,8 +84,8 @@ Note that **ip** must be specified in all queries.
 Example query: DIVENTI_IP:41311/query?ip=192.168.1.1&range=192.168.2.1  
 This will query for all activity for ips between 192.168.1.1 and 192.168.2.1, inclusive.  
 
-Json query: DIVENTI_IP:41311/query?ip=100.168.1.1&range=192.168.2.1&type=json  
-This will query for all activity for ips between 100.168.1.1 and 192.168.2.1, inclusive.  
+Json query: DIVENTI_IP:41311/query?ip=192.168.1.1&range=192.168.2.1&type=json  
+This will query for all activity for ips between 192.168.1.1 and 192.168.2.1, inclusive.  
 The results will be returned as a json string.  
 
 Binary query: DIVENTI_IP:41311/query?ip=100.168.1.1&range=192.168.2.1&type=bin&startTime=X  
