@@ -37,7 +37,7 @@ Value *getValueFromSource(DBT* dbt) {
 			}
 			else if (format == "NetV9"){
 		        return new NetV9_Value(dbt);
-		        }
+		    }
 			else if (format == "basic"){
 				return new Basic_Value(dbt);
 			}
@@ -50,20 +50,6 @@ Value *getValueFromSource(DBT* dbt) {
 	else {
 		debug(1, "WARNING: Source %u does not exist for this value, skipping\n", src);
 		return nullptr;
-	}
-}
-
-// Basic function to return different key types based on the keyCompare function
-Key *getKeyFromCompare(DBT *dbt) {
-	if( keyCompare == IPv4_KeyCompare ) {
-		return new IP_Key(dbt);
-	}
-	else if( keyCompare == BASIC_KeyCompare ) {
-		return new Basic_Key(dbt);
-	}
-	else {
-		diventi_error("ERROR: keyCompare doesn't match ipv4 or basic");                
-        return new IP_Key(dbt);
 	}
 }
 
@@ -120,17 +106,23 @@ TokuHandler::TokuHandler() {
 		exit(EXIT_FAILURE);
 	}
 
-	// Set the cachesize to fifty percent of available main memory
-	#define GB 1000000000
-	struct sysinfo info;
-	if (sysinfo(&info) != 0) {
+
+        // if cache size option not provided then
+        if (OPTIONS.cacheSize==0) {
+            // Set the cachesize to fifty percent of available main memory
+#define GB (1024*1024*1024)
+            struct sysinfo info;
+            if (sysinfo(&info) != 0) {
 		diventi_error("Failed to get total main memory size %d: %s\n",errno, strerror(errno));
-	}
-	uint64_t memory_size = info.totalram;
-	debug(10, "total ram = %lu\n", memory_size);
-	// divide by 2GB in order to get half of the GBs of memory
-	// Add one to round up
-	r = env->set_cachesize(env, memory_size/(GB*2), 0, 1);
+            }
+            uint64_t memory_size = info.totalram;
+            debug(10, "total ram = %lu\n", memory_size);
+            // divide by 2GB in order to get half of the GBs of memory
+            memory_size = memory_size /GB;
+            OPTIONS.cacheSize= memory_size/2;
+        }
+        
+	r = env->set_cachesize(env, OPTIONS.cacheSize, 0, 1);
 	if(r != 0) {
 		diventi_error("Error setting cache size. %d: %s\n", r, db_strerror(r));
 		exit(EXIT_FAILURE);
@@ -269,6 +261,22 @@ void TokuHandler::enableCleaner() {
 	debug(10, "cleaner iterations = %u\n", iterations);
 }
 
+// void TokuHandler::begin_checkpoint() {
+// 	int r;
+
+// 	debug(20, "TokuHandler closing db to flush to file\n");
+// 	// flush all the 
+// 	r = db->close(db);
+
+// 	debug(20, "TokuHandler done flushing\n");
+// }
+
+// void TokuHandler::end_checkpoint() {
+// 	debug(20, "reopening db after checkpoint\n");
+
+// 	r = db->open
+// }
+
 bool TokuHandler::put(KeyValuePair* pair) {
 	bool ret = put(*pair->getKey(), *pair->getValue());
 	delete pair->getKey();
@@ -292,12 +300,17 @@ bool TokuHandler::put(const Key & key, const Value & value) {
 		There can be none, one, or many results all of which are stored into
 		ret and returned if there are no errors in the process
 	Called by QuerySession::resolveQuery
-	Is it possible to have the cursor check both the orig_ip and resp_ip (Is this actually a problem? YES)
-		Making query twice as long is better than making the amount of data stored twice as much
+
+	We optionally include a DBT ** so that toku can return the point from where we should start
+	in the next query
+
+	Queries are limited in the number of elements they can return by the numb parameter
 */
-std::vector<KeyValuePair>* TokuHandler::get(Key* start, Key* end) {
+std::vector<KeyValuePair>* TokuHandler::get(Key* start, Key* end, uint32_t numb, DBT **cTrack) {
 	int r; //for error catching purposes
 	std::vector<KeyValuePair>* ret = new std::vector<KeyValuePair>(); //what will eventually be returned
+	//what are DBC, DBT, and so on ZZ
+		//for interacting with the berkley db
 
 	DBC* cursor = nullptr;
 	DBT* cursorValue = new DBT();
@@ -313,16 +326,15 @@ std::vector<KeyValuePair>* TokuHandler::get(Key* start, Key* end) {
 		throw std::runtime_error("Error getting cursor.");
 	}
 
-	//this is leaking memory
 	r = cursor->c_get(cursor, cursorKey, cursorValue, DB_SET_RANGE);
 	if(r != 0) { //even more error checking
 		if(r != DB_NOTFOUND) {
 			diventi_error("Error setting range. %d: %s", r, db_strerror(r));
 			throw std::runtime_error("Error setting range.");
 		} else {
-			Key *key = getKeyFromCompare(cursorKey);
+			Key *key = whichKey(cursorKey);
 			std::string currentString = key->toString();
-			debug(90, "Empty query. Start:\n%s", currentString.c_str());
+			debug(90, "Empty query. Start:\n%s\n", currentString.c_str());
 			delete key;
 		}
 		r = cursor->c_close(cursor);
@@ -331,42 +343,46 @@ std::vector<KeyValuePair>* TokuHandler::get(Key* start, Key* end) {
 		}
 		return ret;
 	}
-	//passed all the error checking, cursor now set up correctly
+
+	// variable to track whether we got to the end of the range or not
 	bool cont = true;
 
-	while(cont) {
+	// up to numb logs, stop when you reach the end dbt or when numb logs are found
+	for(uint32_t i = 0; i < numb; i++) {
 		debug(95, "TokuHandler entering while\n");
 		if(keyCompare(db, end->getDBT(), cursorKey) < 0) {
-			debug(95, "TokuHandler got to the end dbt.\n");
-			cont = false;
-			continue;
+			debug(60, "TokuHandler got to the end dbt.\n");
+			cont = false; // We've gotten everything we can, another query won't help
+			free(cursorKey->data);
+			free(cursorValue->data);
+			break; //there are no more relevant kvs pairs so stop
 		} else {
-			DBT* keyCopy = new DBT();
-			DBT* valueCopy = new DBT();
-			memcpy(keyCopy, cursorKey, sizeof(DBT));
-			memcpy(valueCopy, cursorValue, sizeof(DBT));
-			Key *tempKey = getKeyFromCompare(keyCopy);
-			Value *tempValue = getValueFromSource(valueCopy);
+			// DBT* keyCopy = new DBT();
+			// DBT* valueCopy = new DBT();
+			// memcpy(keyCopy, cursorKey, sizeof(DBT));
+			// memcpy(valueCopy, cursorValue, sizeof(DBT));
+			Key *tempKey = whichKey(cursorKey);
+			Value *tempValue = getValueFromSource(cursorValue);
 
 			if (tempValue != nullptr) {
 				// KeyValuePair* out = new KeyValuePair(tempKey, tempValue);
 				debug(95, "TokuHandler pushing result into vector\n%s\n%s\n", tempKey->toString().c_str(), tempValue->toString().c_str());
 				ret->push_back(KeyValuePair(*tempKey, *tempValue)); //temp key and temp value to be deleted by querySession later
-				delete keyCopy;
-				delete valueCopy;
+				free(cursorKey->data);
+				free(cursorValue->data);
 			}
 
-			//This is leaking memory
 			r = cursor->c_get(cursor, cursorKey, cursorValue, DB_NEXT);
 			if(r != 0) {
 				if(r != DB_NOTFOUND) {
 					diventi_error("Error incrementing cursor. %d: %s", r, db_strerror(r));
 				} else {
-					Key *endKey = getKeyFromCompare(end->getDBT());
-					Key *curKey = getKeyFromCompare(cursorKey);
+					Key *endKey = whichKey(end->getDBT());
+					Key *curKey = whichKey(cursorKey);
 					std::string endString = endKey->toString();
 					std::string currentString = curKey->toString();
-					debug(95, "Fell off the end of the db?. Cursor:\n%sEnd:\n%s\n", currentString.c_str(), endString.c_str());
+					debug(60, "Fell off the end of the db?. Cursor:%s\nEnd:%s\n", currentString.c_str(), endString.c_str());
+					cont=false; //we've gotten everything we can, another query won't help
 					delete endKey;
 					delete curKey;
 					break;
@@ -378,7 +394,109 @@ std::vector<KeyValuePair>* TokuHandler::get(Key* start, Key* end) {
 	if(r != 0) {
 		debug(90, "Cursor failed to close");
 	}
-	delete cursorKey;
+
+	// if cont = true then we should also return the cursor
+	if(cont && cTrack != nullptr) {
+		// save the current cursor for us to start from later
+		*cTrack = cursorKey;
+		IP_Key debug_key(cursorKey);
+		debug(55, "cursor key = %s\n", debug_key.toString().c_str());
+		free(cursorValue->data);
+	} else {
+		delete cursorKey;
+	}
+	delete cursorValue;
+	return ret;
+}
+
+std::string TokuHandler::binaryGet(Key *start, Key *end, uint32_t *numFound, uint32_t numb, DBT **cTrack) {
+	int r; //for error catching purposes
+	std::string ret; //what will eventually be returned
+
+	DBC* cursor = nullptr;
+	DBT* cursorValue = new DBT();
+	cursorValue->flags |= DB_DBT_MALLOC;
+
+	DBT* cursorKey = new DBT();
+	DBT* startDBT = start->getDBT();
+	memcpy(cursorKey, startDBT, sizeof(DBT));
+	cursorKey->flags |= DB_DBT_MALLOC; //set flag so that db will allocate memory for the returned key
+	r = db->cursor(db, nullptr, &cursor, 0); //set up the cursor for moving through the db
+	if(r != 0) { //error checking
+		diventi_error("Error getting cursor. %d: %s", r, db_strerror(r));
+		throw std::runtime_error("Error getting cursor.");
+	}
+
+	r = cursor->c_get(cursor, cursorKey, cursorValue, DB_SET_RANGE);
+	if(r != 0) { //even more error checking
+		if(r != DB_NOTFOUND) {
+			diventi_error("Error setting range. %d: %s", r, db_strerror(r));
+			throw std::runtime_error("Error setting range.");
+		} else {
+			Key *key = whichKey(cursorKey);
+			std::string currentString = key->toString();
+			debug(90, "Empty query. Start:\n%s\n", currentString.c_str());
+			delete key;
+		}
+		r = cursor->c_close(cursor);
+		if(r != 0) { //error checking
+			debug(90, "Cursor failed to close");
+		}
+		return ret;
+	}
+
+	// variable to track whether we got to the end of the range or not
+	bool cont = true;
+
+	// up to numb logs, stop when you reach the end dbt or when numb logs are found
+	uint32_t i;
+	for(i = 0; i < numb; i++) {
+		debug(95, "TokuHandler entering while\n");
+		if(keyCompare(db, end->getDBT(), cursorKey) < 0) {
+			debug(60, "TokuHandler got to the end dbt.\n");
+			cont = false; // We've gotten everything we can, another query won't help
+			free(cursorKey->data);
+			break; //there are no more relevant kvs pairs so stop
+		} else {
+			ret += std::string((char *)cursorKey->data, cursorKey->size);
+			ret += std::string((char *)cursorValue->data, cursorValue->size);
+			free(cursorKey->data);
+			free(cursorValue->data);
+
+			r = cursor->c_get(cursor, cursorKey, cursorValue, DB_NEXT);
+			if(r != 0) {
+				if(r != DB_NOTFOUND) {
+					diventi_error("Error incrementing cursor. %d: %s", r, db_strerror(r));
+				} else {
+					Key *endKey = whichKey(end->getDBT());
+					Key *curKey = whichKey(cursorKey);
+					std::string endString = endKey->toString();
+					std::string currentString = curKey->toString();
+					debug(60, "Fell off the end of the db?. Cursor:%s\nEnd:%s\n", currentString.c_str(), endString.c_str());
+					cont=false; //we've gotten everything we can, another query won't help
+					delete endKey;
+					delete curKey;
+					break;
+				}
+			}
+		}
+	}
+	*numFound = i;
+	r = cursor->c_close(cursor);
+	if(r != 0) {
+		debug(90, "Cursor failed to close");
+	}
+
+	// if cont = true then we should also return the cursor
+	if(cont && cTrack != nullptr) {
+		// save the current cursor for us to start from later
+		*cTrack = cursorKey;
+		IP_Key debug_key(cursorKey);
+		debug(55, "cursor key = %s\n", debug_key.toString().c_str());
+		free(cursorValue->data);
+	} else {
+		delete cursorKey;
+	}
 	delete cursorValue;
 	return ret;
 }
@@ -429,4 +547,67 @@ std::string TokuHandler::DBStat(std::fstream *file) {
 	*file << "time of last verification: " << bt.bt_verify_time_sec << "\n";
 
 	return "";
+}
+
+// instantiate a Key based upon the variables we have holds
+Key *TokuHandler::whichKey(DBT *dbt) {
+	if(IPKey) {
+		return new IP_Key(dbt);
+	}
+	else if(BasicKey) {
+		return new Basic_Key(dbt);
+	}
+	//NEWFORMAT if you need a new key
+	else {
+		diventi_error("ERROR: All key booleans are false");                
+        return new IP_Key(dbt);
+	}
+}
+
+// return the first key based upon the arguments given by a query
+// use the createFirstKey functions from the configured key we're using
+Key *TokuHandler::getFirstKey(std::map<std::string, std::string> &args) {
+	if(IPKey) {
+		return IP_Key::createFirstKey(args);
+	}
+	else if(BasicKey) {
+		return Basic_Key::createFirstKey(args);
+	}
+	//NEWFORMAT if you need a new key
+	else {
+		diventi_error("ERROR: All key booleans are false");
+		return IP_Key::createFirstKey(args);
+	}
+}
+
+// return the last key based upon the arguments given by a query
+// use the createLastKey functions from the configured key we're using
+Key *TokuHandler::getLastKey(std::map<std::string, std::string> &args) {
+	if(IPKey) {
+		return IP_Key::createLastKey(args);
+	}
+	else if(BasicKey) {
+		return Basic_Key::createLastKey(args);
+	}
+	//NEWFORMAT if you need a new key
+	else {
+		diventi_error("ERROR: All key booleans are false");
+		return IP_Key::createLastKey(args);
+	}
+}
+
+void TokuHandler::setIPKey() {
+	IPKey = true;
+	if( IPKey && BasicKey ) {
+		perror("WARNING: Attempt to set IPKey when BasicKey is set.\n");
+		exit(1);
+	}
+}
+
+void TokuHandler::setBasicKey() {
+	BasicKey = true;
+	if( IPKey && BasicKey ) {
+		perror("WARNING: Attempt to set BasicKey when IPKey is set.\n");
+		exit(1);
+	}
 }

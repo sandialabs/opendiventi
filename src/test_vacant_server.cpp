@@ -82,12 +82,18 @@ int main(int argc, char* argv[]){
 	}
 
 	std::string target = "/query?ip=123.123.123.124";
-	std::string host = "0.0.0.0";
+	std::string host = "127.0.0.1";
 	const int PORT = 9000;
 
 	int exitval = 0;
 	OPTIONS.dataBaseDir = "test";
-	OPTIONS.sources[1] = new source("bro", "bro-data", 0, "", "suspiciousDir", "", 0);
+	source *tmp = new source();
+
+	tmp->logFormat = "bro";
+	tmp->tag = "bro-data";
+	tmp->inputDir = "suspiciousDir";
+
+	OPTIONS.sources[1] = tmp;
 	Control* control = new Control(0);
 	Server* server = new Server(PORT,control, 1);
 	server->run();

@@ -165,24 +165,6 @@ std::string Basic_Value::toJsonString() {
 	return ret;
 }
 
-/*
-	Function to return binary representation of the data
-			ewest - 06/23/18 updated: 07/27/18
-*/
-uint8_t *Basic_Value::toBinary() {
-	uint8_t *x;
-	x = new uint8_t[VALUE_SIZE];
-	char * u = getObservation();
-	for( unsigned int i =0; i < OBS_SIZE; i++) {
-		if( i < strlen(u)) {
-			x[10 + i] = u[i];
-		} else {
-			x[10 + i] = 0;
-		}
-	}
-	return x;
-}
-
 
 /*
  *  Packs the data without calling alloc etc.

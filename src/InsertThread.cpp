@@ -21,6 +21,8 @@ InsertThread::InsertThread(TokuHandler *handler, FileHandler *fH,
 	this->slhh = slhh;
 	t = nullptr;
 	thNum = i;
+        shutdown=false;
+        
 	//set the variables that control how the semi-unique numbers are created
 	//semi-unique numbers are for key creation and help to distinquish identical keys
 	// shift = 8 - ceil(log2(OPTIONS.insertThreads));
@@ -30,27 +32,37 @@ InsertThread::InsertThread(TokuHandler *handler, FileHandler *fH,
 }
 
 InsertThread::~InsertThread() {
-	debug(5,"(%d) Joining insertion thread\n",thNum);
-	debug(5,"t:%p\n",t);
-	if (t != nullptr && t->joinable()){
-		debug(65,"is joinable\n");
-		t->interrupt();
-		t->join();
-	}
-	debug(5,"(%d) Deleting insertion thread\n",thNum);
+        debug(15,"(%d) Deleting insertion thread  (%p)\n",thNum, t);
 
-	delete t;
-	debug(5,"(%d) Insertion thread deleted\n",thNum);
+	if (t != nullptr && t->joinable()){
+                interupt_n_join();
+        }
 }
 
+void InsertThread::interupt_n_join() {
+    debug(15,"(%d) Joining insertion thread t:%p\n",thNum,t);
+
+    if (t != nullptr && t->joinable()){
+        t->interrupt();
+        t->join();
+    }
+    else {
+        debug(15,"Thread %d (%p) is NOT joinable\n", thNum,t);
+    }
+    delete t;
+    t= nullptr;
+    debug(15,"(%d) Insertion thread deleted\n",thNum);
+}
+
+
 void InsertThread::run() {
-	debug(65,"Insertion Thread started\n");
+        debug(45,"Insertion Thread started #%d\n",thNum);
 	numInserted = 0;
-	if (OPTIONS.continuous || OPTIONS.syslog){
-		while(1) {
+	if (OPTIONS.continuous || slhh != nullptr){
+		while(shutdown==false) {
 			if (!readLog()){
 				//if we got false (no data over syslog or from the file) then we should delay before querying again
-				debug(80, "Data could not be collected. Thread sleeping for 25 milliseconds\n");
+				debug(95, "Data could not be collected. Thread sleeping for 25 milliseconds\n");
 				boost::this_thread::sleep_for(boost::chrono::milliseconds(25));
 			}
 			boost::this_thread::interruption_point();
@@ -60,14 +72,17 @@ void InsertThread::run() {
 			boost::this_thread::interruption_point();
 		}
 	}
-	
-
-	debug(95,"(%d) thread shutting down\n",thNum);
+        debug(50,"(%d) thread shutting down\n",thNum);
 }
 
 void InsertThread::thread(){
-	t = new boost::thread(boost::bind(&InsertThread::run,this));
-	debug(50,"(%d) new inserter thread at (%p)\n",thNum,t);
+    if (t!=nullptr) {
+        debug(10,"ERROR trying to create thread when one exists t#:%d %p\n",
+              thNum,t);
+        return;
+    }
+    t = new boost::thread(boost::bind(&InsertThread::run,this));
+    debug(50,"(%d) new inserter thread at (%p)\n",thNum,t);
 }
 
 /*
@@ -111,10 +126,6 @@ bool InsertThread::readLog(){
 		return false;
 	}
 	
-	if(buf[0] == '#') {
-		debug(85, "Header line read when reading log line\n");
-		return true;
-	}
 	debug(94, "(%s) successfully read into buffer\n", 
 		  boost::lexical_cast<std::string>(boost::this_thread::get_id()).c_str());
 	debug(94, "buffer: \'%s\'\n",buf);
@@ -200,7 +211,6 @@ void InsertThread::statsFromFile(std::vector<std::string> data) {
 	debug(30, "file key: %s\n", data[1].c_str());
 	debug(30, "total file inserts: %s\n", data[5].c_str());
 	file_counts[data[1]] = std::stol(data[5]);
-	fileHandler->statsFromFile(data);
 }
 
 AbstractLog *InsertThread::getFormat(std::string format) {

@@ -94,11 +94,17 @@ int main(int argc, char* argv[]){
 	std::string target4Json = "/query?ip=123.123.123.124&type=json";
 	std::string target4Binary = "/query?ip=123.123.123.124&type=bin";
 	std::string target4Nice = "/query?ip=123.123.123.124&type=verbose";
-	std::string host = "0.0.0.0";
+	std::string host = "127.0.0.1";
 	const int PORT = 9000;
 
 	OPTIONS.dataBaseDir = "test";
-	OPTIONS.sources[1] = new source("bro", "bro-data", 0, "", "suspiciousDir", "", 0);
+	source *tmp = new source();
+
+	tmp->logFormat = "bro";
+	tmp->tag = "bro-data";
+	tmp->inputDir = "suspiciousDir";
+
+	OPTIONS.sources[1] = tmp;
 	Control* control = new Control(0);
 	Server* server = new Server(PORT,control, 1);
 	server->run();
@@ -133,13 +139,12 @@ int main(int argc, char* argv[]){
 	//Set up expected value
 	testKey = IP_Key(testIp, 123, 123, testIp, 123);
 	testValue = Bro_Value (1, EMPTY_PROTO, 0.0, 1, 2, EMPTY_CONN, 3, 4, "CYYoei3hy4TjVFL5Gc");;
-	std::string expected = "ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid\n" \
-					+ testKey.toString() + "	" + testValue.toString() + "\n";
+	std::string expected = diventiHeader + "\n" + testKey.toString() + "   " + testValue.toString();
 	//Test answer against expected
 	if(answer != expected) {
 		debug(0, "TEST FAILED\nQuery response for string is different from insert.\n");
 		debug(0, "Expected: %s\n", expected.c_str());
-		debug(0, "Answer: %s\n", answer.c_str());
+		debug(0, "Answer  : %s\n", answer.c_str());
 		delete control;
 		boost::filesystem::path processed(std::string(OPTIONS.dataBaseDir) + "/.Processed");
 		boost::filesystem::remove_all(processed);
@@ -157,7 +162,7 @@ int main(int argc, char* argv[]){
 	if(answer != expected) {
 		debug(0, "TEST FAILED\nQuery response for json is different from insert.\n");
 		debug(0, "Expected: %s\n", expected.c_str());
-		debug(0, "Answer: %s\n", answer.c_str());
+		debug(0, "Answer  : %s\n", answer.c_str());
 		delete control;
 		boost::filesystem::path processed(std::string(OPTIONS.dataBaseDir) + "/.Processed");
 		boost::filesystem::remove_all(processed);
@@ -170,20 +175,21 @@ int main(int argc, char* argv[]){
 	//Test binary
 	answer = http_get(host, PORT, target4Binary);
 	//Create expected answer
-	expected = "";
-	char *key = (char *)testKey.toBinary();
-	char *value = (char *)testValue.toBinary();
-	for ( int x = 0; x < testKey.KEY_BYTES; x++ ) {
-		expected += key[x];
-	}
-	for ( int x = 0; x < 28; x++ ) {
-		expected += value[x];
-	}
+	expected = std::string((const char *)testKey.getDBT()->data, testKey.getDBT()->size) + std::string((const char *)testValue.getDBT()->data, testValue.getDBT()->size);
+	// char *key = (char *)testKey.toBinary();
+	// char *value = (char *)testValue.toBinary();
+	// for ( int x = 0; x < testKey.KEY_BYTES; x++ ) {
+	// 	expected += key[x];
+	// }
+	// for ( int x = 0; x < 28; x++ ) {
+	// 	expected += value[x];
+	// }
 	//Test answer against expected
 	if(answer != expected) {
 		debug(0, "Binary: TEST FAILED\nQuery response for binary is different from insert.\n");
 		debug(0, "Expected vs. Answer\n");
-		for( int x = 0; x < testKey.KEY_BYTES + 28; x++ ) {
+		debug(0, "size is: %s\n", expected.size() == answer.size()?"equal":"different");
+		for( uint x = 0; x < expected.size(); x++ ) {
 			debug(0, "%c vs. %c\n", expected.c_str()[x], answer.c_str()[x]);
 		}
 		delete control;
@@ -203,8 +209,7 @@ int main(int argc, char* argv[]){
 		exit(1);
 	}
 	//Set up expected value
-	expected = "ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid\n" \
-			 + testKey.toVerboseString() + "	" + testValue.toVerboseString() + "\n";
+	expected = diventiHeader + "\n" + testKey.toVerboseString() + "   " + testValue.toVerboseString();
 	
 	//Test answer against expected
 	if(answer != expected) {

@@ -51,17 +51,27 @@ private:
 	boost::beast::flat_buffer buff;
 	bool running;
 
-	int type(std::map<std::string, std::string> &args);
+	int getType(std::map<std::string, std::string> &args);
+	int getNumber(std::map<std::string, std::string> &args);
 	bool statistics(std::map<std::string, std::string> &args);
 	bool validateQuery(std::map<std::string, std::string> &args);
+	void getSources(std::map<std::string, std::string> &args);
 	void resolveQuery();
+	std::string addLink(std::string body, DBT *cTrack, std::map<std::string, std::string> &args, int type);
 	std::string formatRes(std::vector <KeyValuePair> *, int);
 	void handleRead(boost::system::error_code ec, std::size_t bytes_transferred);
 	void handleWrite(boost::system::error_code ec, std::size_t bytes_transferred);
 	void doRead();
 	void send(boost::beast::http::response<boost::beast::http::string_body>& msg);
 	void error(boost::beast::http::status s, std::string what);
+
+	Key *getFirstKey(std::map<std::string, std::string> &args);
+	Key *getLastKey(std::map<std::string, std::string> &args);
+
 	std::map<std::string, std::string> parseURLArgs(std::string url);
+
+	std::chrono::time_point<std::chrono::system_clock> start;
+	uint32_t numReturned = 0;
 };
 
 #endif // QUERY_SESSION_DIVENTI

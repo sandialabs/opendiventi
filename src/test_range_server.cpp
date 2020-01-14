@@ -86,7 +86,13 @@ int main(int argc, char* argv[]) {
 
 	debug(0, "\nStarting test_range_server\n");
 	OPTIONS.dataBaseDir = "test";
-	OPTIONS.sources[1] = new source("bro", "bro-data", 0, "", "suspiciousDir", "", 0);
+	source *tmp = new source();
+
+	tmp->logFormat = "bro";
+	tmp->tag = "bro-data";
+	tmp->inputDir = "suspiciousDir";
+
+	OPTIONS.sources[1] = tmp;
 	Control* control = new Control(0);
 	Server* server = new Server(9000,control, 1);
 	server->run();
@@ -120,8 +126,8 @@ int main(int argc, char* argv[]) {
 	inet_ntop(AF_INET, minIp, mins, INET_ADDRSTRLEN);
 	char maxs[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, maxIp, maxs, INET_ADDRSTRLEN);
-	std::string target = "/query?ip=" + (std::string)mins + "&range=" + (std::string)maxs;
-	std::string host = "0.0.0.0";
+	std::string target = "/query?ip=" + (std::string)mins + "&range=" + (std::string)maxs + "&logs=10000";
+	std::string host = "127.0.0.1";
 
 
 	// ClientsideCli* client = new ClientsideCli();

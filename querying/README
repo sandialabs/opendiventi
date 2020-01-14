@@ -26,11 +26,17 @@ QueryClient.py:
 		./QueryClient.py diventiIP(unless defined elsewhere) queryIP
 
 		OPTIONS:
-			-r RANGE 	the range of IPs between queryIP and range (inclusive) are queried upon
-			-s START 	Defines the first timestamp, all timestamps between start and end (inclusive) are queried upon
-			-e END 		Defines the last timestamp, all timestamps between start and end (inclusive) are queried upon
-			-f FORM		Defines the format of the returned data
-			-p 			Return performance data about the query
+			-r RANGE          the range of IPs between queryIP and range (inclusive) are queried upon
+			-s START          Defines the first timestamp, all timestamps between start and end (inclusive) are queried upon
+			-e END            Defines the last timestamp, all timestamps between start and end (inclusive) are queried upon
+			-t TYPE           Defines the format of the returned data
+			-p                Return performance data about the query
+			-24               query on the last 24 hours
+			-36               query on the last 36 hours
+			-72               query on the last 72 hours
+			-lw, --lastweek   query on the last week of data
+			-lm, --lastmonth  query on the last month of data
+			--port PORT       diventi port to query
 
 
 	Format Options:

@@ -33,6 +33,7 @@ public:
 	// void verifyData();
 private:
 	int readSocket();
+	bool endOfLog(unsigned int);
 
 	int sock;
 	logFormat *cur_format;
@@ -47,6 +48,12 @@ private:
 	AbstractLog *format;
 	uint8_t source_id;
 
+	char seperator; // how do we seperate data, only relevant for text logs
+	// ushort sep_len; // length of the seperator
+
+	ushort syslogOffset;
+
+
 	// End of data never wraps and always shows valid last item in buffer
 	// before we started from the front again. 
 	//   This is not used to see if cur has no more data but ONLY used
@@ -59,7 +66,7 @@ private:
 	// Next empty is the next slot available to write into.
 	// if nextEmpty < endData then we are wrapped.  Otherwise
 	// nextEmpty should equal endData+1.
-	unsigned int nextEmpty; // next spot that is ready to be written.	
+	unsigned int nextEmpty; // next spot that is ready to be written.
 };
 
 // Handles syslog handlers

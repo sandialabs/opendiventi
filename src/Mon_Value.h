@@ -42,7 +42,7 @@ public:
 	std::string toVerboseString();
 	std::string toExtendedString();
 	std::string toJsonString();
-	uint8_t *toBinary();
+
 	Mon_Value *operator=(const Value *other); 
 	bool operator==(const Value& other); 
 	bool operator!=(const Value& other); 

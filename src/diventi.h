@@ -16,52 +16,49 @@
 #define diventi_error(fmt, ...) fprintf(stderr, "%s:%d: " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 
 // const int VERSION = 0;
-const int MAX_LINE = 2048;
+const int MAX_LINE = 8192;
 
+// source definition and default values
 typedef struct source {
-	std::string logFormat = "";
-	std::string tag = "";
-	short syslogPort = 0;
-	std::string syslogArgs = "";
-	std::string inputDir = "";
-	std::string fNameFormat = "";
-	short kafkaPort = 0;
-	source(){}
-	source(std::string lf, std::string t, short sp, std::string sa, 
-		std::string iD, std::string fform, short kp) {
-		logFormat = lf;
-		tag = t;
-		syslogPort = sp;
-		syslogArgs = sa;
-		inputDir = iD;
-		fNameFormat = fform;
-		kafkaPort = kp;
-	}
+	// general information
+	std::string logFormat       = "bro";
+	std::string tag             = "";
+	std::string defaultFields   = "#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	service	duration	orig_bytes	resp_bytes	conn_state	local_orig	missed_bytes	history	orig_pkts	orig_ip_bytes	resp_pkts	resp_ip_bytes	tunnel_parents";
+	// for reading from syslog
+	ushort syslogPort           = 0;
+	ushort syslogOffset         = 0;
+	// std::string syslogSeperator = "\n";
+	char syslogSeperator        = '\n';
+	// for reading from files
+	std::string inputDir        = "";
+	std::string fNameFormat     = "conn.*\\.log(\\.gz)?";
+	// for reading from kafka, not yet implemented
+	ushort kafkaPort            = 0;
 } source;
 
 typedef struct startOptions{
-	bool continuous 	= false;
-	bool directIo 		= false;
-	bool create 		= true;
-	bool tokuThreaded 	= true;
-	bool diventiThreaded= false;
-	bool ipv6 			= false;
-	bool syslog 		= false;
-  	short queryPort		= 41311;	// Default query port
-	short syslogPort	= 1514;	// Default syslog port +1000 so no root
-	short syslogOffset  = 120;
-	int insertThreads	= 3;
-	uint32_t tokuCleanerPeriod = 0;
-	uint32_t tokuCleanerIterations = 0;
-	uint32_t tokuFanout = 16;
+	bool continuous 	                    = false;
+	bool directIo 		                    = false;
+	bool create 		                    = true;
+	bool tokuThreaded 	                    = true;
+	bool diventiThreaded                    = false;
+	bool ipv6 			                    = false;
+	// bool syslog 		                    = false;
+  	short queryPort		                    = 41311;	// Default query port
+	// short syslogPort	                    = 1514;	// Default syslog port +1000 so no root
+	int insertThreads	                    = 3;
+	uint32_t tokuCleanerPeriod              = 0;
+	uint32_t tokuCleanerIterations          = 0;
+	uint32_t tokuFanout                     = 16;
 	TOKU_COMPRESSION_METHOD tokuCompression = TOKU_DEFAULT_COMPRESSION_METHOD;
-	uint32_t tokuPagesize = 4194304;
+	uint32_t tokuPagesize                   = 4194304;
 	// the next two are for delaying the growth of the number of threads
-	uint64_t threadBase = 10000000; //10 million
-	float threadExp = 1.3;
-	uint64_t cleanDelay = 10000000000; //10 billion
-	unsigned long syslogBufsize = 32768;
-	const char* dataBaseDir = nullptr;
+	uint64_t threadBase                     = 10000000; //10 million
+	float threadExp                         = 1.3;
+	uint64_t cleanDelay                     = 10000000000; //10 billion
+	unsigned long syslogBufsize             = 32768;
+	uint64_t cacheSize                      = 0;  // cache size in GB
+	const char* dataBaseDir                 = nullptr;
 	// const char* inputDir 	= nullptr;
 	// const char* fNameFormat = nullptr;
 	// const char* logFormat    = "bro";
@@ -88,7 +85,6 @@ public:
 	virtual std::string toVerboseString() = 0;
 	virtual std::string toExtendedString() = 0;
 	virtual std::string toJsonString() = 0;
-	virtual uint8_t *toBinary() = 0;
 	virtual Key *operator=(const Key *other) = 0;
 	virtual bool operator==(const Key& other) = 0;
 	virtual bool operator!=(const Key& other) = 0;
@@ -104,7 +100,6 @@ public:
 	virtual std::string toVerboseString() = 0;
 	virtual std::string toExtendedString() = 0;
 	virtual std::string toJsonString() = 0;
-	virtual uint8_t *toBinary() = 0;
 
 	// Need these operators for testing
 	virtual Value *operator=(const Value *other) = 0; 
@@ -168,17 +163,15 @@ public:
 
 typedef int (* comparer)(DB *, const DBT *, const DBT *);
 
-extern comparer keyCompare;
+// extern comparer keyCompare;
 //NEWFORMAT if the new format creates a new key then write the function to compare those keys here
-const static uint8_t IPv4_KEY_SIZE = 17;
-inline int IPv4_KeyCompare(DB* db __attribute__((__unused__)), const DBT *a, const DBT *b) {
-	return memcmp(a->data, b->data, IPv4_KEY_SIZE);
+inline int keyCompare(DB* db __attribute__((__unused__)), const DBT *a, const DBT *b) {
+	return memcmp(a->data, b->data, a->size);
 }
 
-const static uint8_t BASIC_KEY_SIZE = 4;
-inline int BASIC_KeyCompare(DB* db __attribute__((__unused__)), const DBT *a, const DBT *b) {
-	return memcmp(a->data, b->data, BASIC_KEY_SIZE);
-}
+// inline int BASIC_KeyCompare(DB* db __attribute__((__unused__)), const DBT *a, const DBT *b) {
+// 	return memcmp(a->data, b->data, a->size);
+// }
 
 //
 //  List out the different types of data sources supported.
@@ -221,3 +214,5 @@ const std::string protoStr[5] = {"-", "unknown",
 // and load it into an entry.
 
 typedef int (*handler_t)(logEntry *e, char *field);
+
+const std::string diventiHeader = "ts                  orig_ip           orig_port   resp_ip           resp_port    source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid";

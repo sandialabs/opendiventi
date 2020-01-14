@@ -76,8 +76,10 @@ Arguments are:
 | **ip** | The singular ip or start ip to query for. |
 | **range** | If this argument is specified, queries for ip addresses between **ip** and **range** |
 | **type**	| If this argument is specified than use either **json** or **bin**(binary) formatting for the response. Defaults to **none**.|
+| **logs**  | The maximum number of logs to return in an answer. Default = 1000 |
 | **startTime** | The earliest time to look for. This should be in seconds from epoch. If not specified, defaults to 0. |
 | **endTime** | The latest time to look for. This should be in seconds from epoch. If not specified, defaults to the end of time (more or less). |
+| **cursor** | The dbt to start searching from. Users should not enter this option. It will be generated automatically by Diventi. |
 
 Note that **ip** must be specified in all queries.
 
@@ -93,6 +95,9 @@ This will query for all activity from startTime X for ips between 100.168.1.1 an
 The results are returned as binary in a string.  
 See bin_functions.py for functions that can extract data from the string.
 
+### Get Sources
+Or you can send a query with just the argument `sources` to get a list of the current sources Diventi is using.  
+ex: DIVENTI_IP:41311/query?sources
 # Formats
 * Bro-conn
 * Netflow v5 ascii

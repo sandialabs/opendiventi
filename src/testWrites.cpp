@@ -11,6 +11,7 @@
 
 #include "IP_Key.h"
 #include "Bro_Value.h"
+#include "KeyValuePair.h"
 
 
 // Needed for cli options
@@ -61,7 +62,10 @@ long getTime(){
 	return std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
 }
 
-
+// IP addresses and variables for preforming queries
+Key *startKey;
+Key *endKey;
+// -----------------------------------------
 
 template<class T>
 const char * FormatWithCommas(T value)
@@ -73,6 +77,7 @@ const char * FormatWithCommas(T value)
 }
 
 // number of nanoseconds in
+#define SECOND 		1000000000
 #define FIVEMINUTES 300000000000
 #define ONEHOUR     3600000000000
 #define ONEDAY      86400000000000
@@ -87,11 +92,17 @@ void sample(int iThreads){
 	std::ofstream log;
 	log.open(logFile);
 
+	debug(10, "startKey = %s\n", startKey->toString().c_str());
+	debug(10, "endKey = %s\n", endKey->toString().c_str());
+
 	uint64_t lastStatus = 0;
-	uint64_t statusEach = 100000000;
+	uint64_t statusEach = 10000000;
+
+	log << "#int(total insertions):int(current time in nanoseconds" << std::endl;
+	log << "#query:int(number returned):int(duration of query in nanoseconds)" << std::endl;
 
 	try{
-		uint64_t nsTime, fiveMin = getTime(),
+		uint64_t nsTime, lastTime = getTime(), fiveMin = getTime(),
 		hour = getTime(), day = getTime();
 		while(1){	// takes a tally for the current count of insertions
 			// About 1 sample/5sec; this is an interrupt point
@@ -122,7 +133,7 @@ void sample(int iThreads){
 				minDay = (uint32_t)-1;
 				day += ONEDAY;
 			}
-			lastRate = (current - last)/5;
+			lastRate = (current - last)/((nsTime - lastTime) / SECOND);
 			minRate = (lastRate < minRate && lastRate != 0) ? lastRate : minRate;
 			maxRate = (lastRate < maxRate) ? maxRate : lastRate;
 			minFive = (lastRate < minFive && lastRate != 0) ? lastRate : minFive;
@@ -131,6 +142,7 @@ void sample(int iThreads){
 			maxHour = (lastRate < maxHour) ? maxHour : lastRate;
 			minDay = (lastRate < minDay && lastRate != 0) ? lastRate : minDay;
 			maxDay = (lastRate < maxDay) ? maxDay : lastRate;
+			lastTime = nsTime;
 
 
 			debug(1,"Rate: %6ld    total: %12s\n",(current - last)/5, FormatWithCommas(current));
@@ -138,14 +150,21 @@ void sample(int iThreads){
 				log << current << ":" << getTime() << std::endl;	
 				last = current;
 				if( current - lastStatus > statusEach) {
-					char fileName[40];
-					sprintf(fileName, "testWrites_status_%011lu", current);
-					std::fstream *statusFile = new std::fstream();
-					statusFile->open(fileName, std::fstream::out);
-					toku->DBStat(statusFile);
-					statusFile->close();
-					delete statusFile;
+					// char fileName[40];
+					// sprintf(fileName, "testWrites_status_%011lu", current);
+					// std::fstream *statusFile = new std::fstream();
+					// statusFile->open(fileName, std::fstream::out);
+					// toku->DBStat(statusFile);
+					// statusFile->close();
+					// delete statusFile;
 					lastStatus += statusEach;
+
+					// query a random ip address and see how long it takes
+					// Time when we began the query
+					uint64_t first = getTime();
+					std::vector<KeyValuePair>* answer = toku->get(startKey, endKey, (uint32_t) -1);
+					uint64_t numReturned = answer->size();
+					log << "query:" << std::to_string(numReturned) << ":" << getTime() - first << std::endl;
 				}
 			}
 		}
@@ -365,7 +384,15 @@ int main(int argc, char const *argv[]){
 		return 1;
 	}
 
+	// setup variables for querying ------------
+	uint32_t addr = 0x7f000000 + rand() % 0xffffff;
+	std::map<std::string, std::string> args;
+	char cstrIP[INET_ADDRSTRLEN];
+	args["ip"] = inet_ntop(AF_INET, (in_addr *) &addr, cstrIP, INET_ADDRSTRLEN);
+	startKey = IP_Key::createFirstKey(args);
+	endKey = IP_Key::createLastKey(args);
 
+	// -----------------------------------------
 
 	long insert_count = get<long>("count", vm, pt, COUNT_DEFAULT);
 	int iThreads = get<int>("numIThreads", vm, pt, INSERT_THREADS_DEFAULT);
@@ -405,11 +432,17 @@ int main(int argc, char const *argv[]){
 	// cleaner delaying
 	OPTIONS.cleanDelay = pt.get<uint64_t>("cleanDelay", OPTIONS.cleanDelay);
 
+	source *tmp = new source();
+	tmp->logFormat = "bro";
+	tmp->tag       = "test-writes";
+	OPTIONS.sources[0] = tmp;
+
 	debug(10,"Starting write tests\n");
 	printf("Starting inserts of %ld key/value pairs\n",insert_count);
 	
 	// Set up local variables for threads
 	toku = new TokuHandler();
+	toku->setIPKey();
 
 	boost::thread *sampler;
 	boost::thread *cli;
@@ -501,6 +534,9 @@ int main(int argc, char const *argv[]){
 	printf("------ Since Start -------\n");
 	printf("Max Rate %s\n", FormatWithCommas(maxRate));
 	printf("Min Rate %s\n", FormatWithCommas(minRate));
+	
+	delete startKey;
+	delete endKey;
 
 	delete toku;
 }

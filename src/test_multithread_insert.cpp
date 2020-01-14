@@ -20,7 +20,14 @@ int main(int argc, char* argv[]) {
 	a = (int) **b;
 	a = (int) **argv;
 	OPTIONS.dataBaseDir = "test";
-	OPTIONS.sources[1] = new source("bro", "bro-data", 0, "", "small.log", "", 0);
+	source *tmp = new source();
+
+	tmp->logFormat = "bro";
+	tmp->tag = "bro-data";
+	tmp->inputDir = "many_small";
+	tmp->fNameFormat = "small.log";
+
+	OPTIONS.sources[1] = tmp;
 
 	Control* control = new Control(3);
 

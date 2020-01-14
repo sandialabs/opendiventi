@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <cstdlib>
 #include <sstream>
+#ifdef BRO_JSON
+#include <ctime>
+#endif
 
 //------------------------------------
 // Field handling routines used for parsing fields
@@ -43,7 +46,21 @@ static int hostRHandler(logEntry *e, char *s) {
 	inet_pton(AF_INET, s, &(be->id_resp_h));
 	return 0;
 }
-
+#ifdef BRO_JSON
+// 2019-11-06T23:59:53.184085Z
+static int tsHandler(logEntry *e, char *s) {
+	BroEntry* be = static_cast<BroEntry*> (e);
+	if (s[0] != '-') {
+		struct tm ctime;
+		strptime(s, "%FT%T%z", &ctime);
+		be->ts = mktime(&ctime)*1000000;	// Seconds
+		be->ts += strtoll(s + 20, nullptr, 10); // Microseconds
+		return 0;
+	}
+	be->ts=0;
+	return -1;
+}
+#else
 static int tsHandler(logEntry *e, char *s) {
 	BroEntry* be = static_cast<BroEntry*> (e);
 	if (s[0] != '-') {
@@ -54,6 +71,7 @@ static int tsHandler(logEntry *e, char *s) {
 	be->ts=0;
 	return -1;
 }
+#endif
 
 static int protoHandler(logEntry *e, char *s) {
 	BroEntry* be = static_cast<BroEntry*> (e);
@@ -135,18 +153,50 @@ static int respPackHandler(logEntry *e, char *s) {
 }
 
 //------------------------
-
-BroFormat::BroFormat(std::string fields) {
-	for (int i = 0; i < MAX_FIELDS; i++){
-		type[i] = UNUSED;
-		fieldHandler[i]=nullptr;
+#ifdef BRO_JSON
+	// for json we ignore the fields argument
+	BroFormat::BroFormat(std::string) {
+		type[0] = TS;
+		fieldHandler[0] = tsHandler;
+		type[1] = UID;
+		fieldHandler[1] = uidHandler;
+		type[2] = ID_ORIG_H;
+		fieldHandler[2] = hostOHandler;
+		type[3] = ID_ORIG_P;
+		fieldHandler[3]=portOHandler;
+		type[4] = ID_RESP_H;
+		fieldHandler[4]=hostRHandler;
+		type[5] = ID_RESP_P;
+		fieldHandler[5] = portRHandler;
+		type[6] = PROTO;
+		fieldHandler[6] = protoHandler;
+		type[7] = DURATION;
+		fieldHandler[7] = durationHandler;
+		type[8] = ORIG_BYTES;
+		fieldHandler[8] = origBytesHandler;
+		type[9] = RESP_BYTES;
+		fieldHandler[9] = respBytesHandler;
+		type[10] = CONN_STATE;
+		fieldHandler[10] = connStateHandler;
+		type[11] = ORIG_PKTS;
+		fieldHandler[11] = origPackHandler;
+		type[12] = RESP_PKTS;
+		fieldHandler[12] = respPackHandler;
+		lastToken = 12;
 	}
-	if( fields == "" ) {
-		perror("ERROR: missing #fileds or syslogArgs empty for bro-conn, specify in source description\n");
-		exit(1);
+#else
+	BroFormat::BroFormat(std::string fields) {
+		for (int i = 0; i < MAX_FIELDS; i++){
+			type[i] = UNUSED;
+			fieldHandler[i]=nullptr;
+		}
+		if( fields == "" ) {
+			diventi_error("ERROR: missing #fields or syslogArgs empty for bro-conn, specify in source description\n");
+			exit(EXIT_FAILURE);
+		}
+		parse(fields);
 	}
-	parse(fields);
-}
+#endif
 
 BroFormat::BroFormat(){
 	for (int i = 0; i < MAX_FIELDS; i++){
@@ -180,13 +230,13 @@ std::string BroFormat::toString() const{
 void BroFormat::parse(std::string fields){
 	std::vector<std::string> toks;
 	unsigned int i;
-	debug(40, "parsing fields: %s", fields.c_str());
-	boost::split(toks, fields, boost::is_any_of(std::string("\t ")), boost::token_compress_on);
+	debug(60, "parsing fields: %s\n", fields.c_str());
 
+	boost::split(toks, fields, boost::is_any_of(std::string("\t ")), boost::token_compress_on);
 	// The first token should be #fields. Lets remove that.
-   if (boost::iequals(toks[0],"#fields")) {
+	if (boost::iequals(toks[0],"#fields")) {
 	   toks.erase(toks.begin());
-   }
+	}
 
 	/*
 	 *   Process the fields line, building the handlers vector
@@ -194,7 +244,7 @@ void BroFormat::parse(std::string fields){
 	 *
 	 */
 	lastToken=0;
-	for (i = 0; i < toks.size(); i++){	
+	for (i = 0; i < toks.size(); i++){
 		if (toks[i] == fieldStr[TS]){
 			type[i] = TS;
 			lastToken=i;
@@ -276,8 +326,8 @@ void BroFormat::parse(std::string fields){
 		}
 		// debug(30, "Entry %d is of type '%s' (enum %d)\n", i, toks[i].c_str(), type[i]);
 	}
-
-	debug(50, "Fields Parsed lastToken:%d\n%s\n", lastToken, toString().c_str());
+        debug(45, "Fields Parsed lastToken:%d \n",lastToken);
+	debug(75, "Fields: %s\n", toString().c_str());
 }
 
 

@@ -23,11 +23,18 @@ int main(int argc, char* argv[]) {
 	char** b = argv;
 	a = (int) **b;
 	a = (int) **argv;
-	OPTIONS.sources[1] = new source("bro", "bro-data", 0, "", "suspiciousDir", "(.*\\/)?conn.*\\.log(\\.gz)?", 0);
+	source *tmp = new source();
+
+	tmp->logFormat = "bro";
+	tmp->tag = "bro-data";
+	tmp->inputDir = "suspiciousDir";
+
+	OPTIONS.sources[1] = tmp;
 	OPTIONS.continuous = true;
 	OPTIONS.dataBaseDir = "test";
 
-	setUpFormat();
+
+	// setUpFormat();
 
 	logFormat* lfp;
 
@@ -58,7 +65,7 @@ int main(int argc, char* argv[]) {
 	outputFile.close();
 
 
-	sleep(1); //ensure that watcher has time to watch
+	sleep(2); //ensure that watcher has time to watch
 
 	debug(25, "Testing second line\n");
 	str = f->getNextLine(&lfp);

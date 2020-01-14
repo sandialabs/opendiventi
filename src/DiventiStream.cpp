@@ -63,9 +63,12 @@ void DiventiStream::seekPos(long pos){
 		std::string discard;
 		while (activeFile->tellg() < pos){
 			if (!activestream->good()){
+				// debug(10, "Error: file bad before requested seek\n");
 				break;
 			}
+			// debug(60, "Scanning gzipped file %li/%li\n", (long)activeFile->tellg(), pos);
 			std::getline(*activestream, discard);
+			// debug(60, "Discarding line '%s'\n", discard.c_str());
 		}
 	} else{
 		activeFile->seekg(pos);

@@ -90,10 +90,15 @@ int main(int argc, char* argv[]){
 	std::string target4Json = "/query?ip=123.123.123.124&type=json";
 	std::string target4Binary = "/query?ip=123.123.123.124&type=bin";
 	std::string target4Nice = "/query?ip=123.123.123.124&type=nice";
-	std::string host = "0.0.0.0";
+	std::string host = "127.0.0.1";
 	const int PORT = 9000;
 
-	OPTIONS.sources[1] = new source("netAscii", "netasci", 0, "", "", "", 0);
+	source *tmp = new source();
+
+	tmp->logFormat = "netAscii";
+	tmp->tag = "netascii";
+
+	OPTIONS.sources[1] = tmp;
 	OPTIONS.dataBaseDir = "test";
 	Control* control = new Control(0);
 	Server* server = new Server(PORT,control, 1);
@@ -129,8 +134,7 @@ int main(int argc, char* argv[]){
 	//Set up expected value
 	testKey = IP_Key(testIp, 123, 123, testIp, 123);
 	testValue = Net_Value(1, EMPTY_PROTO, 0.0, 1, 0x20, 2);
-	std::string expected = "ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid\n" \
-			 + testKey.toString() + "	" + testValue.toString() + "\n";
+	std::string expected = diventiHeader +"\n" + testKey.toString() + "   " + testValue.toString();
 	
 	//Test answer against expected
 	if(answer != expected) {

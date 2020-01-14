@@ -136,6 +136,7 @@ int Watcher::watchDir(std::string dir) {
 
 	// Check if it really is a directory
 	struct stat path_stat;
+
     stat(dir.c_str(), &path_stat);
     bool isDir = S_ISDIR(path_stat.st_mode);
     int wd;
@@ -214,21 +215,21 @@ void Watcher::watch(){
 		FD_SET(pipefds[0], &fds);
 
 		// Block until either there is a termination msg in the pipe or an inotify event occurs
-		debug(50, "Blocking on read...\n");
+		debug(70, "Blocking on read...\n");
 		selectResult = select(greatestfd + 1, &fds, NULL, NULL, NULL);
 
 		if (selectResult == -1){
 			debug(1, "Error reading events\n");
 		} else if (selectResult == 2){
 			// Received both termination and new event; follow termination
-			debug(50, "Watcher thread received termination notice while blocked.\n");
+			debug(40, "Watcher thread received termination notice while blocked.\n");
 			break;
 		} else{
 			// One of the two was read: try to read termination; if it fails, continue, if success: terminate
-			debug(50, "Checking for termination notice in Watcher::watch\n");
+			debug(70, "Checking for termination notice in Watcher::watch\n");
 			len = read(pipefds[0], buf, 5);
 			if (len > 0){
-				debug(50, "Watcher thread received termination notice while blocked.\n");
+				debug(40, "Watcher thread received termination notice while blocked.\n");
 				break;
 			}
 		}
@@ -244,6 +245,10 @@ void Watcher::watch(){
 
 		debug(99, "Watcher about to loop again\n");
 		boost::this_thread::interruption_point();
+
+		//  File system events are triggering constanly for the active file.
+		//  This sleep will temper the rate at which we get events.
+		boost::this_thread::sleep_for(boost::chrono::seconds(1));
 	}
 }
 

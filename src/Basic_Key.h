@@ -19,6 +19,7 @@ typedef struct BASIC_rawKey {
 	uint32_t altitude;
 } BASIC_rawKey_t;
 
+const static uint8_t BASIC_KEY_SIZE = 4;
 
 //  key data union kd_u
 //    A union to format the key data in two ways.
@@ -43,7 +44,6 @@ public:
 	std::string toVerboseString();
 	std::string toExtendedString();
 	std::string toJsonString();
-	uint8_t *toBinary();
 
 	Basic_Key *operator=(const Key *other);
 	bool operator==(const Key& other);

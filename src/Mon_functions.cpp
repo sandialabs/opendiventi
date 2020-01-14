@@ -44,7 +44,6 @@ int Mon::parseBuf(char * buf, int size, logFormat **f, std::list<logEntry *> *re
         }
 
         // Check min line size and send note...
-        // TODO make this a constant for the parse class.
 	if (size< 47) {
 		debug(20,"Got line too small: size: %d\n\t\'%s\'\n",
 			  size,buf);
@@ -170,7 +169,6 @@ int Mon::getRawData(char * buf, DiventiStream *stream){
 
 //Function to read a line from the udp buffer
 unsigned int Mon::getSyslogData(SyslogHandler *slh, char * buf, logFormat **fp) {
-	OPTIONS.syslogOffset = 0;
 	unsigned int size = slh->getNextLine(buf, MAX_LINE, fp);
 	return size;
 }

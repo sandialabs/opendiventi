@@ -7,19 +7,27 @@
 
 SHELL := /bin/bash
 
-#
-#  Provide a pointer to the tokudb ft-index libraries
-TOKUFTLIB = ../ft-index/prefix
-BOOSTPREFIX = ../boostPrefix
-BOOSTLIB = $(BOOSTPREFIX)/lib
-BOOSTINCLUDE = $(BOOSTPREFIX)/include
-
+########### Arguments for Compilation ###########
 #  Uncomment second item to remove debug printing.
 DEBUGF=-DDEBUG
 #DEBUGF=
 #  Uncomment second item to remove benchmark timing.
 BENCHMARKF=-DBENCHMARK
 #BENCHMARKF=
+# Uncomment second item to enable the ingestion of ipv6 logs
+IPV6F=
+#IPV6F=-DIPV6
+# Uncomment second item to enable bro-json ingestion
+BRO_JSONF=
+#BRO_JSONF=-DBRO_JSON
+
+
+#  Provide a pointer to the tokudb ft-index libraries
+TOKUFTLIB = ../ft-index/prefix
+BOOSTPREFIX = ../boostPrefix
+BOOSTLIB = $(BOOSTPREFIX)/lib
+BOOSTINCLUDE = $(BOOSTPREFIX)/include
+
 VPATH=../src
 SRCS = $(wildcard ../src/*.cpp)
 #OBJECTS = Key.o Value.o KeyValuePair.o TokuHandler.o InsertThread.o FileHandler.o Watcher.o Control.o Server.o Client.o QueryHandler.o DiventiProcessed.o DiventiStream.o Parse.o SyslogHandler.o
@@ -35,7 +43,7 @@ TARGETS = $(patsubst %.c,%,$(SRCS))
 TESTSRC = $(wildcard ../src/test_*.cpp) 
 TESTS = $(patsubst ../src/%.cpp, %, $(TESTSRC))
 
-CPPFLAGS = -isystem$(TOKUFTLIB)/include -D_GNU_SOURCE -DTOKUDB $(DEBUGF) $(BENCHMARKF) -std=c++0x
+CPPFLAGS = -isystem$(TOKUFTLIB)/include -D_GNU_SOURCE -DTOKUDB $(DEBUGF) $(BENCHMARKF) $(IPV6F) $(BRO_JSONF) -std=c++0x
 CFLAGS = -g -Wall -Wextra -Werror
 ifeq ($(USE_STATIC_LIBS),1)
 LIBTOKUDB = tokufractaltree_static

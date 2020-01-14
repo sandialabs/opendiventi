@@ -35,6 +35,7 @@ import os
 import argparse
 import pdb
 import time
+import json
 
 import urllib
 import urllib2
@@ -77,26 +78,27 @@ def ip2int(ip_str):
     debug("ip2int  %s %s %s %s %ld " %(a,b,c,d,r), 40)
     return r
 
-port = 41311 # diventi's default port
-
 parser = argparse.ArgumentParser(description=usage,formatter_class=argparse.RawDescriptionHelpFormatter)
 
-parser.add_argument('-d', dest='DB_IP', default='', help='The ip address of diventi server (also found in ~/.diventi.conf)')
+parser.add_argument('-d', dest='DB_IP', default='', help='The ip address of diventi server (required if not in conf file)')
 parser.add_argument('queryIP', help='The ip address to query for')
-parser.add_argument('-r', dest='range', default='', help='query from queryIP to range ip aka start from this IP and go to queryIP')
-parser.add_argument('-s', dest='start', default='', help='query from this timestamp forward e.g. YYYY-MM-DD 2017-10-31')
-parser.add_argument('-e', dest='end', default='', help='query up to this timestamp <defaults to now>')
-parser.add_argument('-f', dest='form', default='', help='format of the data, options: none(the default), json, bin, verbose')
+parser.add_argument('-r', dest='range', default='', help='query from queryIP to range ip')
+parser.add_argument('-s', dest='start', default='', help='query from this timestamp forward')
+parser.add_argument('-e', dest='end', default='', help='query up to this timestamp')
+parser.add_argument('-t', dest='type', default='none', help='format of the data, options: none(the default), json, bin, verbose')
+parser.add_argument('-l', dest='logs', default=1000, help='number of logs to return from the db')
 parser.add_argument('-p', dest='statistics', action='store_const', default=False, const=True, help='gather performance statistics if flag present')
 parser.add_argument('-24', dest='last24', action='store_const', const=True, default=False, help='query on the last 24 hours')
-parser.add_argument('-48', dest='last48', action='store_const', const=True, default=False, help='query on the last 48 hours')
+parser.add_argument('-36', dest='last36', action='store_const', const=True, default=False, help='query on the last 36 hours')
 parser.add_argument('-72', dest='last72', action='store_const', const=True, default=False, help='query on the last 72 hours')
 parser.add_argument('-lw', '--lastweek', dest="lastweek", action='store_const', const=True, default=False, help='query on the last week of data')
-#parser.add_argument('-lm', '--lastmonth', dest="lastmonth", action='store_const', const=True, default=False, help='query on the last month of data')
+parser.add_argument('-lm', '--lastmonth', dest="lastmonth", action='store_const', const=True, default=False, help='query on the last month of data')
+parser.add_argument('--port', dest="port", default=41311, help="diventi port to query")
 parser.add_argument('--debug', dest="debug",  default='0', help='Set the level of debug output')
 args = parser.parse_args()
 proxies = {'http': None }
 
+port = args.port
 
 if args.debug:
     debug_level = int(args.debug)
@@ -136,8 +138,8 @@ if(args.DB_IP == ''):
 #
 if args.last24:
     args.start = str(time.time() - 60*60*24)
-elif args.last48:
-    args.start = str(time.time() - 60*60*48)
+elif args.last36:
+    args.start = str(time.time() - 60*60*36)
 
 elif args.last72:
     args.start = str(time.time() - 60*60*72)
@@ -204,10 +206,12 @@ if(args.start != ''):
     options["startTime"] = args.start
 if(args.end != ''):
     options["endTime"] = args.end
-if(args.form != ''):
-    options["type"] = args.form
+if(args.type != ''):
+    options["type"] = args.type
 if(args.statistics == True):
     options["stats"] = args.statistics
+if(args.logs != 1000):
+    options["logs"] = args.logs
 
 
 
@@ -225,7 +229,7 @@ debug("Query url is: %s"%(url),10)
 
     
 #
-#  Check if there is a special case of searching time and IP range the do it manually.
+#  Check if there is a special case of searching time and IP range then do it manually.
 #
 if((args.start != '' or args.end != '') and args.range != '' and args.range != args.queryIP):
     print("Sorry CLI currently not set up for range of IPs and range of time.")
@@ -235,19 +239,36 @@ if((args.start != '' or args.end != '') and args.range != '' and args.range != a
 #
 #  Send the query to the server
 #
+while(True):
+    req = urllib2.Request(url)
+    try:
+        response = urllib2.urlopen(req)
+    except urllib2.HTTPError as e:
+        print 'The server couldn\'t fulfill the request.'
+        print 'Error code: ', e.code
+    except urllib2.URLError as e:
+        print 'We failed to reach a server.'
+        print 'Reason: ', e.reason
+    else:
+        text = response.read()
+        # everything is fine
+        # handle the response
+        if (type  == "json"):
+            js = json.loads(text)
+            if 'next' in js[0]:
+                print json.dumps(js[1:])
+                url = "http://" + args.DB_IP + ":" +str(port) + js[0]['next']
+            else:
+                print text
+                break
 
-
-
-req = urllib2.Request(url)
-try:
-    response = urllib2.urlopen(req)
-except urllib2.HTTPError as e:
-    print 'The server couldn\'t fulfill the request.'
-    print 'Error code: ', e.code
-except urllib2.URLError as e:
-    print 'We failed to reach a server.'
-    print 'Reason: ', e.reason
-else:
-    # everything is fine
-    print response.read()
+        else: # "none", "verbose" or "binary"
+            firstLine = text.split('\n', 1)[0]
+            if (firstLine[:7] == "/query?"):
+                rest = text.split('\n',1)[1]
+                print rest
+                url = "http://" + args.DB_IP + ":" +str(port) + firstLine
+            else:
+                print text
+                break
     

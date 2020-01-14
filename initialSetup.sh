@@ -66,7 +66,7 @@ if [ ! -d "build" ]; then
 	mkdir build
 	cd build
 	#Old way CC=gcc47 CXX=g++47 cmake
-	CC=gcc CXX=g++ cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_TESTING=ON -D USE_VALGRIND=OFF -D CMAKE_INSTALL_PREFIX=../prefix/ .. 
+	CC=gcc CXX=g++ cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_TESTING=OFF -D USE_VALGRIND=OFF -D CMAKE_INSTALL_PREFIX=../prefix/ .. 
 	cmake --build . --target install
 fi
 

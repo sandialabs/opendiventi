@@ -1,3 +1,3 @@
 ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid
-1258535655.431418   192.168.1.104     1192        65.55.184.16      80       	bro-demo       tcp     59         [127 - 255)   [255 - 511)   UNKNOWN      [3 - 7)     [3 - 7)    CbPF5a2ytjoulQFCA7
-1258535660.158200   192.168.1.104     1196        65.55.184.16      443      	bro-demo       tcp     67         [32767 - 65535)   [8191 - 16383)   UNKNOWN      [31 - 63)   [15 - 31)   CVpnCYyWvdVxYm7k2
+1258535655.431418   192.168.1.104     1192        65.55.184.16      80       	bro-test       tcp     59         [127 - 255)        [255 - 511)        UNKNOWN     [3 - 7)     [3 - 7)     CbPF5a2ytjoulQFCA7
+1258535660.158200   192.168.1.104     1196        65.55.184.16      443      	bro-test       tcp     67         [32767 - 65535)    [8191 - 16383)     UNKNOWN     [31 - 63)   [15 - 31)    CVpnCYyWvdVxYm7k2

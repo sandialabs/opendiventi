@@ -146,17 +146,16 @@ KeyValuePair *NetAscii::createPair(uint8_t index, std::list<logEntry*> *results,
 //------------------------------
 //function which uses diventiStream to read a line from the netAscii log
 int NetAscii::getRawData(char * buf, DiventiStream *stream){
-	//define a function pointer which tells diventiStream
-		//to read a line or read a certain amount of bytes
-	//Additionally define the number of bytes to read or the maximum line size
-
 	int size = stream->getLine(buf);
+	if(buf[0] == '#') {
+		debug(85, "Header line read when reading log line\n");
+		return 0;
+	}
 	return size;
 }
 
 //Function to read a line from the udp buffer
 unsigned int NetAscii::getSyslogData(SyslogHandler *slh, char * buf, logFormat **fp) {
-	OPTIONS.syslogOffset = 0;
 	unsigned int size = slh->getNextLine(buf, MAX_LINE, fp);
 	return size;
 }

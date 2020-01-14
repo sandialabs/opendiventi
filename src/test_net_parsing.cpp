@@ -61,8 +61,14 @@ int main(int argc, char **argv){
 
 	debug(0, "\nStarting test_parser\n");
 	//Now test for netAscii
-	OPTIONS.sources[1] = new source("netAscii", "netascii", 0, "", "", "", 0);
-	setUpFormat();
+	source *tmp = new source();
+
+	tmp->logFormat = "netAscii";
+	tmp->tag = "netascii";
+	tmp->inputDir = "suspiciousDir";
+
+	OPTIONS.sources[1] = tmp;
+	// setUpFormat();
 	std::list<logEntry *> results;
 
 	std::string format = "#fields	ts	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	duration	bytes	tcp_flags	pkts";

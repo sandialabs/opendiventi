@@ -25,45 +25,36 @@
 // function that sets up the set of all sources and writes it to file
 // It also sets up the keyCompare function based upon the type of key
 // supports multisourcing if the formats all have the same keyCompare function
-std::set<const char *> *setUpFormat() {
-	std::set<const char *> *formats = new std::set<const char *>();
+void Control::setUpFormat() {
+	formats = new std::set<const char *>();
 	//These determine how to get the data, parse it, insert it, and more
 	
 	debug(25, "Setting up format\n");
-	bool IPv4_Key = false;
-	bool BASIC_Key = false;
 	for( int i = 0; i < 256; i++ ) {
 		if (OPTIONS.sources[i] != nullptr) {
 			char *format = strndup(OPTIONS.sources[i]->logFormat.c_str(), OPTIONS.sources[i]->logFormat.size());
 
 			formats->insert(format);
 			std::string _format = std::string(format);
+			free(format);
 			//NEWFORMAT Add format identifier to the key type it uses
 			if (_format == "bro" || _format == "NetV5" || _format == "netAscii" || _format == "NetV9" || _format == "mon") {
-				IPv4_Key = true;
-				keyCompare = IPv4_KeyCompare;
+				TKhandler->setIPKey();
 			}
 			else if (_format == "basic") {
-				BASIC_Key = true;
-				keyCompare = BASIC_KeyCompare;
+				TKhandler->setBasicKey();
 			}
 			//NEWFORMAT Add ifs for new key types here
 			else {
 				debug(0, "WARNING: Unrecognized logFormat for source %d, defaulting to bro\n", i);
 				OPTIONS.sources[i]->logFormat = "bro";
-				IPv4_Key = true;
-				keyCompare = IPv4_KeyCompare;
-			}
-			if( IPv4_Key && BASIC_Key ) {
-				debug(0, "source number %d - ", i);
-				perror("WARNING: incompatible source logFormats, keys are different lengths\n");
-				exit(1);
+				TKhandler->setIPKey();
 			}
 		}
 	}
 
 	if( OPTIONS.dataBaseDir != nullptr ) {
-		char filePath[100];
+		char filePath[MAX_LINE];
 		strcpy(filePath, (char *)OPTIONS.dataBaseDir);
 		strcat(filePath, "/tokudb.format");
 		std::ifstream rFormatFile(filePath);
@@ -81,7 +72,11 @@ std::set<const char *> *setUpFormat() {
 					debug(40, "processing old source: %d, logFormat: %s and tag: %s\n", index, tokens[1].c_str(), tokens[2].c_str());
 
 					if( OPTIONS.sources[index] == nullptr ) {
-						OPTIONS.sources[index] = new source(tokens[1], tokens[2], 0, "", "", "", 0);
+						source *tmp    = new source();
+						tmp->logFormat = tokens[1];
+						tmp->tag       = tokens[2];
+
+						OPTIONS.sources[index] = tmp;
 					}
 					else {
 						debug(40, "new source of same number takes precedence, error checking\n");
@@ -93,19 +88,12 @@ std::set<const char *> *setUpFormat() {
 					}
 					//NEWFORMAT Add format identifier to the key type it uses
 					if (tokens[1] == "bro" || tokens[1] == "NetV5" || tokens[1] == "netAscii" || tokens[1] == "NetV9" || tokens[1] == "mon") {
-						IPv4_Key = true;
-						keyCompare = IPv4_KeyCompare;
+						TKhandler->setIPKey();
 					}
 					else if (tokens[1] == "basic") {
-						BASIC_Key = true;
-						keyCompare = BASIC_KeyCompare;
+						TKhandler->setBasicKey();
 					}
 					//NEWFORMAT Add ifs for new key types here
-					if( IPv4_Key && BASIC_Key ) {
-						debug(0, "source number %d - ", index);
-						perror("WARNING: incompatible previous and current logFormats, keys are different lengths\n");
-						exit(1);
-					}
 				}
 				rFormatFile.close();
 			}
@@ -125,7 +113,6 @@ std::set<const char *> *setUpFormat() {
 			}
 		}
 	}
-	return formats;
 }
 //---------------------
 
@@ -146,11 +133,12 @@ Control::Control(int numThreads){
 	debug(75, "Creating handlers\n");
 	TKhandler = new TokuHandler();
 	debug(75, "Created TKhandler\n");
-
-	fileHandler = new FileHandler();
+	debug(30, "reading in file status/inserts\n");
+	std::vector<std::vector<std::string>> file_status = readFileStatus();
+	fileHandler = new FileHandler(file_status);
 	debug(75, "Created fileHandler\n");
 
-	formats = setUpFormat();
+	setUpFormat();
 
 	#ifdef BENCHMARK
 	sampleFile = new std::fstream();
@@ -173,9 +161,16 @@ Control::Control(int numThreads){
 	if(syslog) {
 		slhh = new SyslogHandlerHandler(slhs, position); //create wrapper class for syslog, we 0 index so +1 
 	}
-
-	creator = new boost::thread(boost::bind(&Control::setUpThreads, this, numThreads));
-
+	
+	// make first thread and then pull statsFromFile
+	inserters.push_back(new InsertThread(TKhandler, fileHandler, slhh, 0));
+	for( std::vector<std::string> tokens : file_status) {
+		inserters[0]->statsFromFile(tokens);
+	}
+	// make the rest of the threads
+	for( int i = 1; i< numThreads; ++i) {
+		inserters.push_back(new InsertThread(TKhandler, fileHandler, slhh, i));
+	}
 	sampler = nullptr;
 	maxRate = 0;
 	minRate = INFINITY;
@@ -190,21 +185,21 @@ Control::Control(int numThreads){
 }
 
 Control::~Control(){
-	debug(79,"writing file inserts\n");
+	debug(39,"writing file inserts\n");
 	writeFileStatus();
-	debug(79,"deleting Threads\n");
+	debug(39,"deleting Threads\n");
 	delThreads();
-	debug(79,"deleting TKhandler\n");
+	debug(39,"deleting TKhandler\n");
 	delete TKhandler;
-	debug(79,"deleting fileHandler\n");
+	debug(39,"deleting fileHandler\n");
 	delete fileHandler;
-	debug(50, "deleting syslogHandlers\n");
+	debug(40, "deleting syslogHandlers\n");
 	for(int i = 0; i < 256; i++) {
 		if (slhs[i] != nullptr) {
 			delete slhs[i];
 		}
 	}
-	delete slhs;
+	free(slhs);
 	debug(50, "deleting syslogHandlerHandler\n");
 	if (slhh != nullptr){
 		delete slhh;
@@ -216,17 +211,41 @@ Control::~Control(){
 	#ifdef BENCHMARK
 	delete sampleFile;
 	#endif
-	debug(79,"deleted components\n");
+	debug(39,"IOControl deleted components\n");
 }
 
-// A thread runs on this function until the number of insertion threads desired is reached
+// void Control::checkpoint_diventi() {
+// 	shutdown(); // shutdown the insertion threads to stop data from being added
+
+//	call toku function to close the db or somehow write all the insertions
+//	to the underlying file
+
+// 	OPTIONS.databaseDir
+// 	boost::filesystem::copy_directory(OPTIONS.dataBaseDir, );
+
+//	reopen toku db if necessary
+
+// 	runThreads(); // restart ingestion now that checkpoint is complete
+
+// }
+
+// This funtion is run as  the creator thread (created by runThreads)
+// it starts up other threads slowly as a function of the data base size
+//  wait timing and the exponential factor (OPTIONS.threadBase & OPTIONS.threadExp)
 void Control::setUpThreads(int numThreads){
-	debug(20, "Running thread slow-start until %u threads\n", numThreads);
 	uint64_t wait = OPTIONS.threadBase; // wait initial amount to add second thread
+	debug(10,"Setup Threads starting with to create %d threads w/ wait: %ld exp: %f\n",
+		numThreads,wait, OPTIONS.threadExp);
+        
 	bool not_cleaning = true;
-	for(int i = 0; i < numThreads; ++i) {
-		inserters.push_back(new InsertThread(TKhandler, fileHandler, slhh, i));
-		debug(50,"Made thread number:%i\n",i);
+
+	// Kick off the first thread (0)
+	inserters[0]->thread();
+	debug(55, "ran thread number:0\n");
+
+	// Now start up other threads slowly as a function of the data base size
+	//  wait timing and the exponential factor (OPTIONS.threadBase & OPTIONS.threadExp)
+	for(int i = 1; i < numThreads; ++i) {
 		// For the first 20 threads we delay between adding them
 		while(i < 20 && lastNumInserted + oldNumInserted < wait) {
 			if(lastNumInserted + oldNumInserted >= OPTIONS.cleanDelay && not_cleaning) {
@@ -235,13 +254,18 @@ void Control::setUpThreads(int numThreads){
 			}
 			boost::this_thread::sleep_for(boost::chrono::seconds(1));
 		}
+		inserters[i]->thread();
+		debug(55,"ran thread number:%i\n",i);
 		// Is exponential growth on thread by thread basis the best way?
 		wait *= OPTIONS.threadExp;
 	}
+ 	debug(20,"Thread Setup complete %d threads w/ %d inserters\n",
+		numThreads, (int) inserters.size());        
 	while(lastNumInserted + oldNumInserted < OPTIONS.cleanDelay)
 		boost::this_thread::sleep_for(boost::chrono::seconds(1));
 	if(not_cleaning)
 		TKhandler->enableCleaner();
+	debug(20,"TK Cleaner enabled\n");
 }
 
 // uint64_t Control::getNumbInserted(){
@@ -308,58 +332,58 @@ std::string Control::getFileStatus(uint8_t flags) {
 	}
 
 	//remove any files from processed that are currently in progress
-	for (auto it = processing.begin(); it != processing.end(); it++) {
-		processed.erase(std::string(*it));
+	for (std::string name : processing) {
+		processed.erase(name);
 	}
 
 	//remove any files that appear in processed and queued
 	//add these files to reprocess
-	for (auto it = processed.begin(); it != processed.end(); it++) {
-		if (queued.count(std::string(*it)) == 1) {
-			processed.erase(std::string(*it));
-			queued.erase(std::string(*it));
-			reprocess.insert(std::string(*it));
+	for (std::string name : processed) {
+		if (queued.count(name) == 1) {
+			reprocess.insert(name);
+			processed.erase(name);
+			queued.erase(name);
 		}
 	}
 	//flags variable determines what sets are included in the output
 	if (flags & QUEUE) {
 		ret += "====               Queued               ====\n";
-		for (auto it = queued.begin(); it != queued.end(); it++) {
-			ret += std::string(*it) + "\n";
+		for (std::string name : queued) {
+			ret += name + "\n";
 		}
 	}
 
 	if (flags & REQUEUE) {
 		ret += "====  reQueued - Processed but changed  ====\n";
-		for (auto it = reprocess.begin(); it != reprocess.end(); it++) {
+		for (std::string name : reprocess) {
 			uint64_t file_count = 0;
 			for (uint i = 0; i < inserters.size(); i++) {
-				file_count += inserters[i]->fileCount(std::string(*it));
+				file_count += inserters[i]->fileCount(name);
 			}
-			ret += std::string(*it) + " -- " + inserters[0]->fileInfo(std::string(*it))+"; inserts: "+ins_to_str(file_count)+")\n";
+			ret += name + " -- " + inserters[0]->fileInfo(name)+"; inserts: "+ins_to_str(file_count)+")\n";
 		}
 	}
 
 	if (flags & PROCESS) {
 		ret += "==== Processed & Being watched (if set) ====\n";
 		//rbegin and rend to traverse the list backward
-		for (auto it = processed.rbegin(); it != processed.rend(); it++) {
+		for (std::string name : processed) {
 			uint64_t file_count = 0;
 			for (uint i = 0; i < inserters.size(); i++) {
-				file_count += inserters[i]->fileCount(std::string(*it));
+				file_count += inserters[i]->fileCount(name);
 			}
-			ret += std::string(*it) + " -- " + inserters[0]->fileInfo(std::string(*it))+"; inserts: "+ins_to_str(file_count)+")\n";
+			ret += name + " -- " + inserters[0]->fileInfo(name)+"; inserts: "+ins_to_str(file_count)+")\n";
 		}
 	}
 
 	if (flags & ACTIVE) {
 		ret += "====        Currently pointing at       ====\n";
-		for (auto it = processing.begin(); it != processing.end(); it++) {
+		for (std::string name : processing) {
 			uint64_t file_count = 0;
 			for (uint i = 0; i < inserters.size(); i++) {
-				file_count += inserters[i]->fileCount(std::string(*it));
+				file_count += inserters[i]->fileCount(name);
 			}
-			ret += std::string(*it) + " -- " + inserters[0]->fileInfo(std::string(*it))+"; inserts: "+ins_to_str(file_count)+")\n";
+			ret += name + " -- " + inserters[0]->fileInfo(name)+"; inserts: "+ins_to_str(file_count)+")\n";
 		}
 	}
 	return ret;
@@ -381,7 +405,7 @@ void Control::writeFileStatus() {
 	}
 	// Write the information we have on each file to the file
 	if( OPTIONS.dataBaseDir != nullptr ) {
-		char filePath[100];
+		char filePath[MAX_LINE];
 		strcpy(filePath, (char *)OPTIONS.dataBaseDir);
 		strcat(filePath, "/tokudb.inserts");
 		std::ofstream insertsFile(filePath);
@@ -410,11 +434,12 @@ void Control::writeFileStatus() {
 	}
 }
 
-void Control::readFileStatus() {
+std::vector<std::vector<std::string>> Control::readFileStatus() {
+	std::vector<std::vector<std::string>> ret; // create 2d vector to return
 	//if the file doesn't exist then do nothing
 	//if the file does exist then read in the data and modify the data that insertion/fileHandler have
 	if( OPTIONS.dataBaseDir != nullptr ) {
-		char filePath[100];
+		char filePath[MAX_LINE];
 		strcpy(filePath, (char *)OPTIONS.dataBaseDir);
 		strcat(filePath, "/tokudb.inserts");
 		std::ifstream insertsFile(filePath);
@@ -431,25 +456,20 @@ void Control::readFileStatus() {
 				std::vector<std::string> tokens;
 				boost::split(tokens, line,  boost::is_any_of(std::string(";")), boost::token_compress_on);
 				if( tokens.size() == 6 ){
-					inserters[0]->statsFromFile(tokens);
+					ret.push_back(tokens);
 				}
 				else {
 					perror("Control.ccp::readFileStatus -> Insertion count from tokudb.inserts does not have required number of tokens(6) split by ';'\n");
 					exit(1);
 				}
-				//Just for debugging
-				// for( uint i = 0; i < tokens.size(); i++ ) {
-				// 	debug(0, "token: %s\n", tokens[i].c_str());
-				// }
 			}
 		}
 		insertsFile.close();
 	}
+	return ret;
 }
 
 void Control::runThreads(){
-	debug(30, "reading in file status/inserts\n");
-	readFileStatus();
 	debug(10,"numThreads in Control: %ld\n", inserters.size());
 	// Spawn a thread to sample insertion amounts for each insertion thread
 	// Start up sampler before so that first inserts don't count as happening super fast
@@ -457,13 +477,64 @@ void Control::runThreads(){
 		sampler = new boost::thread(boost::bind(&Control::sample, this));
 	}
 
-	for (std::size_t i = 0; i < inserters.size(); ++i)
-	{
-		debug(10,"run thread number:%li\n", i);
-		inserters[i]->thread();
-	}
+	// Use the creator and setUpThreads logic to kick off the needed threads
+	//  Moved from the constructor to ensure insertion threads are explicitly
+	//  started after IO Control is allocated and query server (Server) are setup.
+	creator = new boost::thread(boost::bind(&Control::setUpThreads, this, numThreads));
+
+	// I believe this was causing duplicate calls to inserters[i]->thread() for restarts
+	//  when the data base had some events already in it.
+	//for (std::size_t i = 0; i < inserters.size(); ++i)
+	//{
+	//	debug(10,"run thread number:%li\n", i);
+	//	inserters[i]->thread();
+	//}
 }
 
+
+// Set up a boolean that tells the IOControl object
+//   (to include it's creator thread if still running)
+// and all of the insertion threads to shutdown
+//  Specifically we want all of the insertion threads to stop
+//  inserting so when we collect their & records statistics
+//  and file positions we have a consistent set of data
+//  that isn't in flux getting updated.
+
+void Control::shutdown() {
+
+    debug(10,"Starting shutdown sequence.  %d threads\n", (int) inserters.size());
+    // First stop doing any creation
+    if (creator != nullptr && creator->joinable()){
+        creator->interrupt();
+        creator->join();
+        delete creator;
+        creator = nullptr;
+        debug(30,"Creator shutdown\n");
+    }
+    else {
+        debug(30, "No creator found for shutdown\n");
+    }
+    
+    // loop through all of the inserter objects and set their shutdown to true.
+    for (std::size_t i = 0; i < inserters.size(); ++i) {
+        // set the inserter's shutdown variable to be true
+        // No mutex is needed because we are only writing to one bool and
+        //  no one else should be writing to it.
+        if (inserters[i]!= nullptr) {
+            inserters[i]->shutdown = true;
+            debug(45,"Set Shutdown for insertion thread number %ld\n",i);
+        }
+    }
+    // Now loop through each inserter ensuring the thread is done
+    //  with an interupt and join.  Note we  don't delete the inserter object so
+    //  we can use the final data when we write out the stats.
+    debug(30,"Waiting for insertion threads to complete\n");
+    for (std::size_t i = 0; i < inserters.size(); ++i) {
+        inserters[i]->interupt_n_join();
+    }
+    
+}
+    
 void Control::delThreads(){
 	if (sampler != nullptr && sampler->joinable()){
 		sampler->interrupt();
@@ -472,21 +543,16 @@ void Control::delThreads(){
 		sampler = nullptr;
 	}
 
-	if (creator != nullptr && creator->joinable()){
-		creator->interrupt();
-		creator->join();
-		delete creator;
-		creator = nullptr;
-	}
-
 	for (std::size_t i = 0; i < inserters.size(); ++i)
 	{
-		delete inserters[i]; //deleting an insertThread uses join to wait for the tread to finish and then deletes the thread
+		delete inserters[i]; //deleting an insertThread uses join to wait for the thread to finish and then deletes the thread
 		inserters[i] = nullptr;
 		debug(10,"deleted insertion thread number %ld\n",i);
 	}
 }
 
+
+ 
 // number of nanoseconds in
 #define FIVEMINUTES 300000000000
 #define ONEHOUR     3600000000000

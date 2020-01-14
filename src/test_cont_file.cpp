@@ -28,11 +28,18 @@ int main(int argc, char** argv){
 	char** b = argv;
 	a = (int) **b;
 	a = (int) **argv;
-	OPTIONS.sources[1] = new source("bro", "bro-data", 0, "", "suspiciousDir", "", 0);
+	source *tmp = new source();
+
+	tmp->logFormat = "bro";
+	tmp->tag = "bro-data";
+	tmp->inputDir = "suspiciousDir";
+	tmp->fNameFormat = "verySuspicious.txt";
+
+	OPTIONS.sources[1] = tmp;
 	OPTIONS.continuous = true;
 	OPTIONS.dataBaseDir = "test";
 
-	setUpFormat();
+	// setUpFormat();
 
 	// Create the nested directory system
 	boost::filesystem::path p0("suspiciousDir");
@@ -42,6 +49,10 @@ int main(int argc, char** argv){
 
 	// Create the file to be written to/read from
 	std::ofstream outputFile("./suspiciousDir/current/verySuspicious.txt");
+	
+	// fields so that filehandler will accept this file, will be auto skipped
+	// outputFile << "#fields\n"; 
+	// outputFile.flush();
 
 	FileHandler* f = new FileHandler;
 	std::string* str;
@@ -50,8 +61,9 @@ int main(int argc, char** argv){
 	// Expect a line
 	outputFile << "line 0\n";
 	outputFile.flush();
-	sleep(1);	// Give time for watcher to be notified
+	sleep(2);	// Give time for watcher to be notified
 
+	debug(10, "getting line, expect line0\n");
 	str = f->getNextLine(&lf);
 	if (str == nullptr){
 		debug(0, "TEST FAILED\n");
@@ -66,6 +78,7 @@ int main(int argc, char** argv){
 	}
 	delete str;
 
+	debug(10, "getting line, expect nullptr\n");
 	str = f->getNextLine(&lf);
 	if (str != nullptr){
 		debug(0, "TEST FAILED\n");
@@ -77,8 +90,9 @@ int main(int argc, char** argv){
 	outputFile << "line 1\n";
 	outputFile << "line 2";
 	outputFile.flush();
-	sleep(1);	// Give time for watcher to be notified
+	sleep(2);	// Give time for watcher to be notified
 
+	debug(10, "getting line, expect line1\n");
 	str = f->getNextLine(&lf);
 	if (str == nullptr){
 		debug(0, "TEST FAILED\n");
@@ -93,6 +107,7 @@ int main(int argc, char** argv){
 	}
 	delete str;
 
+	debug(10, "getting line, expect line2\n");
 	str = f->getNextLine(&lf);
 	if (str == nullptr){
 		debug(0, "TEST FAILED\n");
@@ -117,8 +132,9 @@ int main(int argc, char** argv){
 	boost::filesystem::path p3("suspiciousDir/verySuspicious.txt");
 	boost::filesystem::rename(p2, p3);
 	// Give time for watcher to discover new file
-	sleep(1);
+	sleep(2);
 
+	debug(10, "getting line, expect line3\n");
 	str = f->getNextLine(&lf);
 	if (str == nullptr){
 		debug(0, "TEST FAILED\n");

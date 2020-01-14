@@ -264,44 +264,6 @@ std::string Bro_Value::toJsonString() {
 	return ret;
 }
 
-/*
-downside is that the length of the tag is unknown... so extra processing
-
-	Function to return binary representation of the data
-			ewest - 06/23/18 updated: 07/27/18
-				pros:
-					easier/faster on our end
-					more data compression
-				cons:
-					More complicated for user to get data back out
-					Not sure if it will actually work or not ... :)
-*/
-uint8_t *Bro_Value::toBinary() {
-	uint8_t *x;
-	x = new uint8_t[BYTES_FOR_BINARY_REP];
-	x[0] = getProtocol();
-	uint32_t dur = getDuration();
-	dur = htonl(dur);
-	x[1] = dur >> 24;
-	x[2] = (dur & 0x00FF0000) >> 16;
-	x[3] = (dur & 0x0000FF00) >> 8;
-	x[4] = (dur & 0x000000FF);
-	x[5] = getOrigBytes();
-	x[6] = getRespBytes();
-	x[7] = getConnState();
-	x[8] = getOrigPkts();
-	x[9] = getRespPkts();
-	char * u = getUid();
-	for( unsigned int i =0; i < 18; i++) {
-		if( i < strlen(u)) {
-			x[10 + i] = u[i];
-		} else {
-			x[10 + i] = 0;
-		}
-	}
-	return x;
-}
-
 
 /*
  *  Packs the data without calling alloc etc.

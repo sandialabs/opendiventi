@@ -15,7 +15,15 @@ int main(int argc, char* argv[]){
 
 	int exitval = 0;
 	OPTIONS.dataBaseDir = "test";
-	OPTIONS.sources[1] = new source("bro", "bro-data", 0, "", "suspiciousDir", "", 0);
+
+	source *tmp = new source();
+
+	tmp->logFormat = "bro";
+	tmp->tag = "bro-data";
+	tmp->inputDir = "suspiciousDir";
+
+	OPTIONS.sources[1] = tmp;
+	
 	Control* control = new Control(0);
 	Server* server = new Server(9000,control, 1);
 	server->run();

@@ -28,8 +28,14 @@ int main(int argc, char* argv[]) {
 	a = (int) **argv;
 	OPTIONS.dataBaseDir = "test";
 
-	OPTIONS.sources[1] = new source("bro", "bro-data", 0, "", "suspiciousDir", "", 0);
-	setUpFormat();
+	source *tmp = new source();
+
+	tmp->logFormat = "bro";
+	tmp->tag = "bro-data";
+	tmp->inputDir = "suspiciousDir";
+
+	OPTIONS.sources[1] = tmp;
+	// setUpFormat();
 	debug(10, "creating handler\n");
 	TokuHandler* handler = new TokuHandler();
 	debug(10, "created handler\n");

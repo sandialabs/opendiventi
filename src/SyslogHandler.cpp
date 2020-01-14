@@ -67,8 +67,12 @@ SyslogHandler::SyslogHandler(source *src, uint8_t source_id){
 	}
 
 	// Set up the parsing format that was loaded from the config.
-	format = getLogFormat(src->logFormat);
-	cur_format = format->createFormat(src->syslogArgs);
+	format          = getLogFormat(src->logFormat);
+	cur_format      = format->createFormat(src->defaultFields);
+	// seperator       = const_cast<char *> (src->syslogSeperator.c_str());
+	// sep_len         = strlen(seperator);
+	seperator       = src->syslogSeperator;
+	syslogOffset    = src->syslogOffset;
 	this->source_id = source_id;
 	
 	// allocate receive buffer and initialze pointers.
@@ -78,7 +82,11 @@ SyslogHandler::SyslogHandler(source *src, uint8_t source_id){
 	endData=-1; 
 
 	debug(19,"Syslog Handler setup on port %d, offset:%d Bufsize:%ld\n",
-		  src->syslogPort,OPTIONS.syslogOffset,OPTIONS.syslogBufsize);
+		  src->syslogPort,syslogOffset,OPTIONS.syslogBufsize);
+	// debug(25, "Syslog Handler: seperator = '%s' seperator length = %u\n",
+	// 	seperator, sep_len);
+	debug(25, "Syslog Handler: seperator ascii encoding = %u\n",
+		(uint8_t)seperator);
 }
 
 SyslogHandler::~SyslogHandler(){
@@ -101,8 +109,23 @@ void SyslogHandler::clearBuffer() {
 	m.unlock();
 }
 
+// bool SyslogHandler::endOfLog(unsigned int cur) {
+// 	// if the seperator wraps
+// 	if(nextEmpty < endData && (endData - cur) + 1 < sep_len) {
+// 		uint32_t head = (endData - cur) + 1;
+// 		// compare the first portion of the seperator at the end of the buffer
+// 		if(strncmp(rcvBuf + cur, seperator, head) == 0) {
+// 			// compare the remaining portion of the seperator at the 
+// 			// beginning of the buffer
+// 			return !strncmp(rcvBuf, seperator + head, sep_len - head);
+// 		}
+// 	}
+// 	// seperator does not wrap so we can check immediately
+// 	return !strncmp(rcvBuf+cur, seperator, sep_len);
+// }
+
 /*
- *   Look in the udp buffer. Find the next complete line 
+ *   Look in the udp buffer. Find the next complete log using seperator
  *   and copy that into the buffer provided. add a null terminator
  *   then return the size of the line copied.
  *   
@@ -112,9 +135,7 @@ void SyslogHandler::clearBuffer() {
  *   Data is only read into the buffer when there is not a line of data available.
  *   We don't anticipate reads to be greater than 9000 (a jumbo MTU) -- famous last words...
  *
- *     NB: null terminate log lines.
- *
- *  returns: 0 for no line and otherwise the number of bytes in the line.
+ *  returns: 0 for no log and otherwise the number of bytes in the log.
  *
  */
 unsigned int SyslogHandler::getNextLine(char * buf, const unsigned int maxSize, logFormat **f){
@@ -147,7 +168,7 @@ unsigned int SyslogHandler::getNextLine(char * buf, const unsigned int maxSize, 
  findEol:
 	cur = nextData;
 	bool wrapped = false;
-	while (rcvBuf[cur]!='\n') {
+	while (rcvBuf[cur] != seperator) {
 		cur++;
 		// If we have more data keep going
 		//  The common case is first test and just loops here.
@@ -180,9 +201,9 @@ unsigned int SyslogHandler::getNextLine(char * buf, const unsigned int maxSize, 
 		  cur,nextData,nextEmpty, endData, wrapped);
 
 	// found a line - either \n or end of udp buffer.
-	if (rcvBuf[cur]=='\n' || cur >= nextEmpty) {
+	if (rcvBuf[cur] == seperator || cur >= nextEmpty) {
 		if (!wrapped) {
-			debug(60, "not wrapped, cur: %u\n", cur);
+			debug(65, "not wrapped, cur: %u\n", cur);
 			if( cur >= nextData ) {
 				s = cur-nextData; // don't include \n in the line sent.
 			}
@@ -194,24 +215,24 @@ unsigned int SyslogHandler::getNextLine(char * buf, const unsigned int maxSize, 
 				debug(25,"Warn: log line (%d) larger that buf size %d\n",s, maxSize);
 				s=maxSize;
 			}
-			if (s>(unsigned int) OPTIONS.syslogOffset) {
+			if (s > syslogOffset) {
 				// copy the line
-				s -= OPTIONS.syslogOffset;
-				memcpy(buf,&rcvBuf[nextData+OPTIONS.syslogOffset],s);
+				s -= syslogOffset;
+				memcpy(buf,&rcvBuf[nextData+syslogOffset],s);
 				buf[s]=0;
 			} else {
 				debug(10,"log line %d smaller than offset %d\n",s,
-					  OPTIONS.syslogOffset);
+					  syslogOffset);
 				s=0;
 			}
 			debug(70, "s: %u size: %d\n", s, (int)strlen(buf));
 			nextData = cur; 
-			if (rcvBuf[cur]=='\n' )  // move past \n  if there was one.
+			if (rcvBuf[cur] == seperator)  // move past seperator if there was one.
 				nextData+=1;
 		}
 		else {  // We wrapped
-			debug(60, "wrapped, cur: %u end: %u next: %u\n", cur, endData, nextData);
-			s=(endData - nextData) +1; // calculate the data left at the end
+			debug(65, "wrapped, cur: %u end: %u next: %u\n", cur, endData, nextData);
+			s=(endData - nextData)+1; // calculate the data left at the end
 			if (nextData > endData) {
 				//Catch case where we wrap and end of last buffer
 				//was directly at end of syslogBuffer
@@ -223,23 +244,28 @@ unsigned int SyslogHandler::getNextLine(char * buf, const unsigned int maxSize, 
 			memcpy(buf+s,rcvBuf,cur); // cur = \n and we're not copying that so no +1.
 			s += cur;
 
-			//  Handle the offset clipping.
-			//    and shift the new memory in the caller's buf.
-			s -= OPTIONS.syslogOffset;
-			memmove(buf,buf+OPTIONS.syslogOffset,s);
+			if (s >= syslogOffset) {
+				//  Handle the offset clipping.
+				//    and shift the new memory in the caller's buf.
+				s -= syslogOffset;
+				memmove(buf,buf+syslogOffset,s);
+				buf[s]=0;
+			} else {
+				debug(40, "found error case resetting buffers. s:%d",s);
+			}
 			
-			buf[s]=0;
+			
 			debug(70, "s: %u size: %d\n", s, (int)strlen(buf));
 			// reset the points for the wrap
-			if (rcvBuf[cur]=='\n')
-				nextData=cur+1;
+			if (rcvBuf[cur] == seperator)
+				nextData=cur+1; // move past seperator if present
 			else
 				nextData=nextEmpty;
 			endData = nextEmpty -1;
 		}
 		
 #if 0  // an optimization -- while testing we leave it out.
-		// if buffer is empty reset to 0.
+		// if buffer is empty reset to 0.is line but we've wrapped cycle to the front.
 		if (nextEmpty==nextData) {
 			nextEmpty=0;
 			nextData=0;
@@ -285,7 +311,7 @@ int SyslogHandler::readSocket() {
 	ssize_t r;
 	ssize_t total=0;
 	// read at least syslog offset +2
-	while (total < OPTIONS.syslogOffset+2) {
+	while (total < syslogOffset+2) {
 		len = OPTIONS.syslogBufsize - nextEmpty;
 		
 		// recv fails with EAGAIN/EWOULDBLOCK if queue empty
@@ -430,6 +456,7 @@ The name will never be changed
 SyslogHandlerHandler::SyslogHandlerHandler(SyslogHandler **_slhs, int _num_handlers) {
 	slhs = _slhs;
 	num_handlers = _num_handlers;
+	debug(45, "created syslogHandlerHandler\n");
 }
 
 //function to get data from the set of syslogHandlers in round robin style

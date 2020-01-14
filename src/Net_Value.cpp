@@ -1,12 +1,15 @@
 #include "Net_Value.h"
 #include "diventi.h"
 
+#include <sstream>
 #include <tokudb.h>
 
 /*
 	The value is the parts of the log that don't include the ips, ports, or timestamp
 	includes: protocol, duration, bytes transfered and recieved, and so on
 */
+
+std::string const  Net_Value::flagStr[] = {"U", "A", "P", "R", "S", "F"};
 
 static inline int log2(uint64_t val){
 	val += 1; // Round up by up to 1 - avoids undefined 0 case and differentiates 1 from 0
@@ -122,31 +125,16 @@ uint8_t Net_Value::getPkts() {
 
 
 std::string Net_Value::tcpStr() {
-	std::string ret = "";
-	uint8_t flag = getTcpFlags();
-	if((flag & 0x20) != 0) {
-		ret += "U";
+	std::stringstream s;
+	uint8_t flags = getTcpFlags();
+	for (int i=0; i<= num_flags; i++) {
+		if (flags & (1 << i))                         
+			s<< flagStr[i];
+		else
+			s<< ".";
 	}
-	if((flag & 0x10) != 0) {
-		ret += "A";
-	}
-	if((flag & 0x08) != 0) {
-		ret += "P";
-	}
-	if((flag & 0x04) != 0) {
-		ret += "R";
-	}
-	if((flag & 0x02) != 0) {
-		ret += "S";
-	}
-	if((flag & 0x01) != 0) {
-		ret += "F";
-	}
-	if( ret == "" ) {
-		ret = "-";
-	}
-	debug(50, "ret: %s\n", ret.c_str());
-	return ret;
+	debug(70, "flags: %s\n", s.str().c_str());
+	return s.str();
 }
 
 /*
@@ -247,26 +235,6 @@ std::string Net_Value::toJsonString() {
 	}
 
 	return ret;
-}
-
-/*
-	Function to return binary representation of the data
-			ewest - 06/23/18 updated: 07/27/18
-*/
-uint8_t *Net_Value::toBinary() {
-	uint8_t *x;
-	x = new uint8_t[BYTES_FOR_BINARY_REP];
-	x[0] = getProtocol();
-	uint32_t dur = getDuration();
-	dur = htonl(dur);
-	x[1] = dur >> 24;
-	x[2] = (dur & 0x00FF0000) >> 16;
-	x[3] = (dur & 0x0000FF00) >> 8;
-	x[4] = (dur & 0x000000FF);
-	x[5] = getBytes();
-	x[7] = getTcpFlags();
-	x[9] = getPkts();
-	return x;
 }
 
 //Variation of packData for netflow

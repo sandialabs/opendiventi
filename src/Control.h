@@ -4,7 +4,7 @@
 #include <boost/thread.hpp>
 #include <fstream>
 
-#define LINE_SIZE	200	// small.log has lines of size 112, but better safe than sorry
+#define LINE_SIZE	8192	// small.log has lines of size 112, but better safe than sorry
 // 
 #define QUEUE   0x01
 #define REQUEUE 0x02
@@ -24,6 +24,7 @@ public:
 	void addThread();
 	void runThreads();
 	void delThreads();
+	void shutdown();
 	void setUpThreads(int numThreads);
 
 	TokuHandler *TKhandler;
@@ -34,7 +35,9 @@ public:
 	std::string getFileStatus(uint8_t flags);
 	std::string ins_to_str(uint64_t);
 	void writeFileStatus();
-	void readFileStatus();
+	std::vector<std::vector<std::string>> readFileStatus();
+
+	void setUpFormat();
 
 	// functions for accessing the minimum and maximum rates
 	// over given time periods
@@ -49,6 +52,7 @@ public:
 	
 	float getLastRate(){ return lastRate; }
 	char** getBadBuf(){ return badBuf; }
+	void checkpoint_diventi();
 
 	std::fstream *getSampleFile() const {return sampleFile;}
 
@@ -75,8 +79,7 @@ private:
 	int badBufSize, badBufHead;	// No tail - will just overwrite
 
 	std::set<const char *> *formats;
-};
 
-std::set<const char *> *setUpFormat();
+};
 
 #endif

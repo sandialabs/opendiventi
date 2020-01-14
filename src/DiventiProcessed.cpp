@@ -89,7 +89,6 @@ unsigned long int DiventiProcessed::getLastPos(std::string key){
  */
 bool DiventiProcessed::setLastPos(std::string key, long int pos){
 	if (pos < 0){
-		// fileName printing handled outside this function
 		debug(50, "Error setting last pos: pos (%ld) must be positive or 0\n", pos);
 		return false;
 	}

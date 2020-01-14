@@ -85,11 +85,17 @@ int main(int argc, char* argv[]){
 	debug(0, "\nStarting test_server_single_query\n");
 
 	std::string target = "/query?ip=123.123.123.124";
-	std::string host = "0.0.0.0";
+	std::string host = "127.0.0.1";
 	const int PORT = 9000;
 
 	OPTIONS.dataBaseDir = "test";
-	OPTIONS.sources[1] = new source("bro", "bro-data", 0, "", "suspiciousDir", "", 0);
+	source *tmp = new source();
+
+	tmp->logFormat = "bro";
+	tmp->tag = "bro-data";
+	tmp->inputDir = "suspiciousDir";
+
+	OPTIONS.sources[1] = tmp;
 	Control* control = new Control(0);
 	Server* server = new Server(PORT,control, 1);
 	server->run();
@@ -124,13 +130,12 @@ int main(int argc, char* argv[]){
 	testKey = IP_Key(testIp, 123, 123, testIp, 123);
 	testValue = Bro_Value(1, EMPTY_PROTO, 0.0, 1, 2, EMPTY_CONN, 3, 4, "CYYoei3hy4TjVFL5Gc");
 
-	std::string expected = "ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid\n"\
-				 + testKey.toString() + "	" + testValue.toString() + "\n";
+	std::string expected = diventiHeader + "\n" + testKey.toString() + "   " + testValue.toString();
 
 	if(answer != expected) {
 		debug(0, "TEST FAILED\nQuery response is different from insert.\n");
 		debug(0, "Expected: %s\n", expected.c_str());
-		debug(0, "Answer: %s\n", answer.c_str());
+		debug(0, "Answer  : %s\n", answer.c_str());
 		exit(1);
 	} else {
 		debug(0, "TEST PASSED!\n");

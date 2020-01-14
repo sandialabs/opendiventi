@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <sstream>
 
-//globals for header variables
+// header variables
 uint16_t version = 0;
 uint16_t flowNum = 0;
 uint64_t sysTime = 0;
@@ -20,63 +20,57 @@ uint64_t unixSec = 0;
 uint64_t unix_NS = 0;
 bool headerValid = true;
 
-//global because we'll use it in multiple functions
 uint64_t firstSysTime = 0;
 
 //mutex for getSyslogData and getRawData as multiple threads will be using them
-	//and they require shared resources
-std::mutex mGet;
+//and they require shared resources
+static std::mutex mGet;
 
 //-----------------------
 //Functions for extracting data from the netflow header buffer
-static void versionHandler(char *s) {
+static uint16_t versionHandler(char *s) {
 	uint16_t ver = 0;
 	for( int j = 0; j < 2; j++ ) {
 		ver += (uint8_t)s[VER+j] << (8*(1-j));
 	}
-	version = ver;
-	debug(75, "version: %u\n", version);
-	return;
+	debug(75, "version: %u\n", ver);
+	return ver;
 }
 
-static void countHandler(char *s) {
+static uint16_t countHandler(char *s) {
 	uint16_t count = 0;
 	for( int j = 0; j < 2; j++ ) {
 		count += (uint8_t)s[COUNT+j] << (8*(1-j));
 	}
-	flowNum = count;
-	debug(75, "flowNum set: %u\n", flowNum);
-	return;
+	debug(75, "flowNum set: %u\n", count);
+	return count;
 }
 
-static void uptimeHandler(char *s) {
+static uint64_t uptimeHandler(char *s) {
 	uint64_t uptime = 0;
 	for( int j = 0; j < 4; j++ ){
 		uptime += (uint8_t)s[UPTIME+j] << (8*(3-j));
 	}
-	sysTime = uptime;
-	debug(75, "sysTime set: %lu\n", sysTime);
-	return;
+	debug(75, "sysTime set: %lu\n", uptime);
+	return uptime;
 }
 
-static void unixSecsHandler(char *s) {
+static uint64_t unixSecsHandler(char *s) {
 	uint64_t secs = 0;
 	for( int j = 0; j < 4; j++ ){
 		secs += (uint8_t)s[SECS+j] << (8*(3-j));
 	}
-	unixSec = secs;
-	debug(75, "unixSec set: %lu\n", unixSec);
-	return;
+	debug(75, "unixSec set: %lu\n", secs);
+	return secs;
 }
 
-static void nanoSecsHandler(char *s) {
+static uint64_t nanoSecsHandler(char *s) {
 	uint64_t nsecs = 0;
 	for( int j = 0; j < 4; j++ ){
 		nsecs += (uint8_t)s[NSECS+j] << (8*(3-j));
 	}
-	unix_NS = nsecs;
-	debug(75, "NanoSec set: %lu\n", unix_NS);
-	return;
+	debug(75, "NanoSec set: %lu\n", nsecs);
+	return nsecs;
 }
 
 //-----------------------
@@ -203,7 +197,7 @@ int NetV5::parseBuf(char * buf, int size, logFormat **f, std::list<logEntry *> *
 		for (int i = 0; i < fp->lastToken; i++) {
 			(*(fp->fieldHandler[i]))(e,buf+(48*j));
 		}
-		//debug(0, "Inserted logEntry: %s", e->toString().c_str());
+		debug(110, "Inserted logEntry: %s", e->toString().c_str());
 		results->push_back(e);
 	}
 	return entries*2;
@@ -236,13 +230,13 @@ int NetV5::getRawData(char * buf, DiventiStream *stream) {
 	debug(80, "size of read: %d\n", size);
 	if(size == 24) {
 		debug(75, "handling a header\n");
-		versionHandler(buf);
+		version = versionHandler(buf);
 		if(version != 5)
 			printf("Unexpected netflow version %u ... data may be corrupted\n", version);
-		countHandler(buf);
-		uptimeHandler(buf);
-		unixSecsHandler(buf);
-		nanoSecsHandler(buf);
+		flowNum = countHandler(buf);
+		sysTime = uptimeHandler(buf);
+		unixSec = unixSecsHandler(buf);
+		unix_NS = nanoSecsHandler(buf);
 	}
 	debug(65, "handling %u flows.\n", flowNum);
 	int numBytes = flowNum*48;
@@ -253,25 +247,11 @@ int NetV5::getRawData(char * buf, DiventiStream *stream) {
 	return size;
 }
 
-/*
-Just some notes and code for v9
-VER = 0
-COUNT = 2
-UPTIME = 4
-SECS = 8
-NSECS = 12
-(package sequence is 4 bytes)
-(Source ID 4 bytes)
-
-Flow ID = 0 (if zero then defining a templete, if not then referencing a templete and using a data flow)
-
-*/
 //Function to read bytes from the udp buffer
 unsigned int NetV5::getSyslogData(SyslogHandler *slh, char * buf, logFormat **fp) {
 	//function to read bytes already well established
 	//just call it feeding the number of bytes to read
 	mGet.lock();
-	OPTIONS.syslogOffset = 0;
 	int size = slh->getNextBytes(buf, 24, fp);
 	debug(70, "size of syslog read: %d\n", size);
 	flowNum = 0;

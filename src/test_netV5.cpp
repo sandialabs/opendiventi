@@ -87,11 +87,18 @@ int main(int argc, char* argv[]){
 	
 
 	std::string target = "/query?ip=192.168.17.27";
-	std::string host = "0.0.0.0";
+	std::string host = "127.0.0.1";
 	const int PORT = 9000;
 
 	OPTIONS.dataBaseDir = "test";
-	OPTIONS.sources[1] = new source("NetV5", "net-data", 0, "", "net-log", "v5_small.log", 0);
+	source *tmp = new source();
+
+	tmp->logFormat = "NetV5";
+	tmp->tag = "net-data";
+	tmp->inputDir = "net-log";
+	tmp->fNameFormat = "v5_small.log";
+
+	OPTIONS.sources[1] = tmp;
 	Control* control = new Control(0);
 	Server* server = new Server(PORT, control, 1);
 	server->run();
@@ -133,8 +140,7 @@ int main(int argc, char* argv[]){
 
 	//Set up expected value
 	// IP_Key testKey = IP_Key(testIp1, 1533420301000000, 42623, testIp2, 53);
-	std::string expected = "ts                  orig_ip           orig_port   resp_ip           resp_port   source_tag     proto   duration   orig_byts          resp_byts          conn_flags  orig_pkts   resp_pkts   uid\n" \
-				+ testKey.toString() + "	" + testValue.toString() + "\n";
+	std::string expected = diventiHeader + "\n" + testKey.toString() + "   " + testValue.toString();
 	
 	//Test answer against expected
 	if(answer != expected) {

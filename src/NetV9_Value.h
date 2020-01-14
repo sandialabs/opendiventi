@@ -41,10 +41,13 @@ public:
 	std::string toVerboseString();
 	std::string toExtendedString();
 	std::string toJsonString();
-	uint8_t *toBinary();
+	std::string toBinary();
 	NetV9_Value *operator=(const Value *other);
 	bool operator==(const Value& other);
 	inline bool operator!= (const Value& other) {return !(*this==other);}
+
+	const static int num_flags = 6;
+	static  std::string const  flagStr[num_flags];
 
 private:
         static int const SOURCE_POS = 0;

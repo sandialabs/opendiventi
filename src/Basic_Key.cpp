@@ -162,23 +162,6 @@ std::string Basic_Key::toJsonString() {
 }
 
 /*
-	Function to return binary representation of the data
-		ewest - updated 07/26/18
-*/
-uint8_t *Basic_Key::toBinary() {
-	//Convert to binary and apply host to network conversions
-	uint8_t *x;
-	x = new uint8_t[KEY_BYTES];
-	uint32_t altitude = getAltitude();
-	altitude = htonl(altitude);
-	x[0] = altitude >> 24;
-	x[1] = (altitude & 0x00FF0000) >> 16;
-	x[2] = (altitude & 0x0000FF00) >> 8;
-	x[3] = (altitude & 0x000000FF);
-	return x;
-}
-
-/*
  *  Does same as binPack w/o alloc
  *    Takes the data elements and packs them into the 
  *    Keys' data without all the allocating of the predecessor.

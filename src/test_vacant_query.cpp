@@ -22,8 +22,15 @@ int main(int argc, char* argv[]) {
 
 	int exitval = 0;
 
-	OPTIONS.sources[1] = new source("bro", "bro-data", 0, "", "suspiciousDir", "", 0);
-	setUpFormat();
+
+	source *tmp = new source();
+
+	tmp->logFormat = "bro";
+	tmp->tag = "bro-data";
+	tmp->inputDir = "suspiciousDir";
+
+	OPTIONS.sources[1] = tmp;
+	// setUpFormat();
 
 	debug(0, "\nStarting test_vacant_query\n");
 	int a = argc;

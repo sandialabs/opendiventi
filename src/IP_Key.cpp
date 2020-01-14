@@ -131,7 +131,11 @@ bool IP_Key::isReversed(){
 
 struct in_addr* IP_Key::getIPA() {
 	struct in_addr* ret = new struct in_addr();
-	ret->s_addr = be32toh(htonl(*((unsigned long*) ((byte*)dbt.data + IPA_POS))));
+#ifndef IPV6  
+	ret->s_addr = *(uint32_t *) ((byte *)dbt.data + IPA_POS);
+#else
+	ret->s_addr = be64toh(*(uint64_t *) ((byte *)dbt.data + IPA_POS));
+#endif
 	return ret;
 }
 
@@ -141,7 +145,11 @@ uint16_t IP_Key::getPortA() {
 
 struct in_addr* IP_Key::getIPB() {
 	struct in_addr* ret = new struct in_addr();
-	ret->s_addr = be32toh(htonl(*((unsigned long*) ((byte*)dbt.data + IPB_POS))));
+#ifndef IPV6  
+	ret->s_addr = *(uint32_t *) ((byte *)dbt.data + IPB_POS);
+#else
+	ret->s_addr = be64toh(*(uint64_t *) ((byte *)dbt.data + IPB_POS));
+#endif
 	return ret;
 }
 
@@ -309,47 +317,6 @@ std::string IP_Key::toJsonString() {
 }
 
 /*
-	Function to return binary representation of the data
-		ewest - updated 07/26/18
-*/
-uint8_t *IP_Key::toBinary() {
-	//Convert to binary and apply host to network conversions
-	uint8_t *x;
-	x = new uint8_t[KEY_BYTES]{0};
-	uint64_t time = getTimestamp();
-	time = htobe64(time);
-	x[0] = time >> 56;
-	x[1] = (time & 0xFF000000000000) >> 48;
-	x[2] = (time & 0xFF0000000000) >> 40;
-	x[3] = (time & 0xFF00000000) >> 32;
-	x[4] = (time & 0xFF000000) >> 24;
-	x[5] = (time & 0xFF0000) >> 16;
-	x[6] = (time & 0xFF00) >> 8;
-	x[7] = (time & 0xFF);
-	uint32_t orig = (uint32_t)getOrigIP()->s_addr;
-	orig = htonl(orig);
-	x[8] = orig >> 24;
-	x[9] = (orig & 0x00FF0000) >> 16;
-	x[10] = (orig & 0x0000FF00) >> 8;
-	x[11] = (orig & 0x000000FF);
-	uint16_t oport = getOrigPort();
-	oport = htons(oport);
-	x[12] = oport >> 8;
-	x[13] = oport & 0x000000FF;
-	uint32_t resp = (uint32_t)getRespIP()->s_addr;
-	resp = htonl(resp);
-	x[14] = resp >> 24;
-	x[15] = (resp & 0x00FF0000) >> 16;
-	x[16] = (resp & 0x0000FF00) >> 8;
-	x[17] = (resp & 0x000000FF);
-	uint16_t rport = getRespPort();
-	rport = htons(rport);
-	x[18] = rport >> 8;
-	x[19] = rport & 0x000000FF;
-	return x;
-}
-
-/*
  *  Does same as binPack w/o alloc
  *    Takes the data elements and packs them into the 
  *    Keys' data without all the allocating of the predecessor.
@@ -365,18 +332,27 @@ void IP_Key::packData(struct in_addr* ipA, uint64_t timestamp,
 	byte *ret;
 	ret = keyData.data;
 
-	// All members must be in big endian for keyCompare to work     
-	aAddr = htobe32(ntohl(ipA->s_addr));    
-	memcpy(ret + IPA_POS, &aAddr, sizeof(unsigned long));
-	
+	// All members must be in big endian for keyCompare to work
+#ifndef IPV6
+	aAddr = htobe32(ntohl(ipA->s_addr));
+	memcpy(ret + IPA_POS, &aAddr, sizeof(uint32_t));
+#else
+	aAddr = htobe64(ntohl(ipA->s_addr));
+	memcpy(ret + IPA_POS, &aAddr, sizeof(uint64_t));
+#endif
 	timestamp = htobe64(timestamp);
 	memcpy(ret + TIMESTAMP_POS, &timestamp, sizeof(uint64_t));
 	
 	portA = htobe16(portA);
 	memcpy(ret + PORTA_POS, &portA, sizeof(uint16_t));
 	
+#ifndef IPV6  
 	bAddr = htobe32(ntohl(ipB->s_addr));
-	memcpy(ret + IPB_POS, &bAddr, sizeof(unsigned long));
+	memcpy(ret + IPB_POS, &bAddr, sizeof(uint32_t));
+#else
+	bAddr = htobe64(ntohl(ipB->s_addr));
+	memcpy(ret + IPB_POS, &bAddr, sizeof(uint64_t));
+#endif
 	
 	portB = htobe16(portB);
 	memcpy(ret + PORTB_POS, &portB, sizeof(uint16_t));
@@ -423,10 +399,30 @@ static uint64_t endTime(std::map<std::string, std::string> &args){
 //Function that parses the url arguments and returns the Key which denotes the
 //	first valid index
 Key *IP_Key::createFirstKey(std::map<std::string, std::string> &args) {
-	struct in_addr zeroIP;
-	struct in_addr ipStart = firstIP(args);
-	inet_pton(AF_INET, "0.0.0.0", &zeroIP);
-	IP_Key *startKey = new IP_Key(&ipStart, startTime(args), 0, &zeroIP, 0);
+	IP_Key *startKey;
+	// if there is a cursor argument then use that
+
+	if(args.count("cursor") > 0) {
+		byte *data = (byte *)calloc(KEY_SIZE, sizeof(uint8_t));
+		std::string hex_cursor = args["cursor"];
+		for(uint i = 0; i < KEY_SIZE; i++) {
+			std::string temp = hex_cursor.substr(i*2, 2);
+			uint32_t val;
+			sscanf(temp.c_str(), "%x", &val);
+			data[i] = (uint8_t) val;
+		}
+		startKey = new IP_Key(data);
+		free(data);
+		debug(55, "cursor key = %s\n", startKey->toString().c_str());
+	}
+	// if not then use the ip argument
+	else {
+		struct in_addr zeroIP;
+		struct in_addr ipStart = firstIP(args);
+		inet_pton(AF_INET, "0.0.0.0", &zeroIP);
+		startKey = new IP_Key(&ipStart, startTime(args), 0, &zeroIP, 0);
+	}
+	
 	return startKey;
 }
 

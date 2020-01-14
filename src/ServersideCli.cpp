@@ -35,10 +35,6 @@
 const int QUERY_THREADS_DEFAULT = 1;
 
 const std::string DB_DIR_DEFAULT = "tokudb";
-const std::string FILE_NAME_FORMAT_DEFAULT = "conn.*\\.log(\\.gz)?";
-const std::string LOG_FORMAT_DEFAULT = "bro";
-
-const std::string SYSLOG_FIELDS_DEFAULT = "#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	service	duration	orig_bytes	resp_bytes	conn_state	local_orig	missed_bytes	history	orig_pkts	orig_ip_bytes	resp_pkts	resp_ip_bytes	tunnel_parents";
 
 //\n#types  time    string  addr    port    addr    port    enum    string  interval        count   count   string  bool    count   string  count   count   count   count   set[string]";
 
@@ -122,10 +118,11 @@ void handle_cli(double start, Control *control) {
 			}
 			// shutdown
 			if (q=="shutdown" || q=="exit") {				
-				printf("Shutting down diventi  (XX threads)\n");
-				// Run through each thread and tell them to shutdown
+				printf("Shutting down diventi\n");
+				// Setting done causes this loop to finish and starts
+				// the shutdown processed for Control.
 				done=1;
-				break; 
+				break;
 			}
 			//  print system status status
 			if (q=="status" || q=="s") {
@@ -158,7 +155,6 @@ void handle_cli(double start, Control *control) {
 				printf("Last Rate: %s\n", control->ins_to_str(control->getLastRate() * 1e9).c_str());
 				// q = "statistics";
 				
-				// sampler's most recent results.
 				// most recent rates & overall rates
 				// threads running & check status
 			}
@@ -242,22 +238,44 @@ void handle_cli(double start, Control *control) {
 				printf("Current time: %s\n", buf);
 				delete buf;
 			}
-			// if(q=="threads") {
-			// 	std::cout << "new number of threads = ";
-			// 	std::cin >> q;
-			// 	try {
-			// 		control->adjustThreads(stoul(q));
-			// 	} catch(std::invalid_argument) {
-			// 		std::cout << "\nbad input, needs to be number. Try again.\n";
-			// 	}
-			// }
+			if(q=="checkpoint") {
+				printf("--- Checkpoint Begin ---\n");
+				printf("Insertions will cease until checkpoint stops\n");
+				
+				printf("---- Checkpoint End ----\n");
+			}
 		}
 	}  catch (boost::thread_interrupted) {
 	}
 
 } // end of cli
 
-
+static void parseSepString(source *src, std::string sep_tmp) {
+	if (sep_tmp != "") {
+		if(sep_tmp[0] == '\\') {
+			switch((int) sep_tmp[1]) {
+				case 't':
+					src->syslogSeperator = '\t';
+					break;
+				case 'n':
+					src->syslogSeperator = '\n';
+					break;
+				case 'a':
+					src->syslogSeperator = '\a';
+					break;
+				case '\\':
+					src->syslogSeperator = '\\';
+					break;
+				default:
+					src->syslogSeperator = (ushort)std::stoi(sep_tmp.c_str()+1);
+					break;
+			}
+		}
+		else
+			src->syslogSeperator = sep_tmp[0];
+	}
+	debug(40, "converted string %s to seperator encoding %u\n", sep_tmp.c_str(), (uint8_t)src->syslogSeperator);
+}
 
 namespace po = boost::program_options;
 
@@ -333,7 +351,7 @@ int main(int argc, char const *argv[]){
 	std::string dbDir = get<std::string>("dbDir", vm, pt, DB_DIR_DEFAULT);
 	// std::string fNameFormat = get<std::string>("fileNameFormat", vm, pt, FILE_NAME_FORMAT_DEFAULT);
 	// std::string logFormat = get<std::string>("logFormat", vm, pt, LOG_FORMAT_DEFAULT);
-	// std::string syslogArgs = get<std::string>("syslogArgs", vm, pt, SYSLOG_FIELDS_DEFAULT);
+	// std::string syslogFields = get<std::string>("syslogFields", vm, pt, SYSLOG_FIELDS_DEFAULT);
 
 	#ifdef DEBUG
 	debug_level = get<int>("debugLvl", vm, pt, 0);
@@ -345,10 +363,11 @@ int main(int argc, char const *argv[]){
 	OPTIONS.insertThreads = get<int>("numIThreads", vm, pt, OPTIONS.insertThreads);
 	OPTIONS.continuous = pt.get<bool>("watchIDir", vm.count("watchIDir"));
 	// OPTIONS.logFormat = logFormat.c_str();
-	OPTIONS.syslogPort = get<short>("syslogPort", vm, pt, OPTIONS.syslogPort);
+	// OPTIONS.syslogPort = get<short>("syslogPort", vm, pt, OPTIONS.syslogPort);
 	OPTIONS.queryPort = get<short>("queryPort", vm, pt, OPTIONS.queryPort);
 	OPTIONS.syslogBufsize = get<unsigned long>("syslogBufsize", vm, pt, OPTIONS.syslogBufsize);
-	OPTIONS.syslogOffset = get<short>("syslogOffset", vm, pt, OPTIONS.syslogOffset);
+        OPTIONS.cacheSize = get<uint64_t>("cacheSize", vm, pt, 0);
+	// OPTIONS.syslogOffset = get<short>("syslogOffset", vm, pt, OPTIONS.syslogOffset);
 	OPTIONS.tokuCleanerPeriod = get<uint32_t>("tokuCleanerPeriod", vm, pt, OPTIONS.tokuCleanerPeriod);
 	OPTIONS.tokuCleanerIterations = get<uint32_t>("tokuCleanerIterations", vm, pt, OPTIONS.tokuCleanerIterations);
 	OPTIONS.tokuPagesize = get<uint32_t>("tokuPagesize", vm, pt, OPTIONS.tokuPagesize);
@@ -366,7 +385,7 @@ int main(int argc, char const *argv[]){
 	else {
 		OPTIONS.tokuCompression = TOKU_DEFAULT_COMPRESSION_METHOD;
 	}
-	// OPTIONS.syslogArgs = syslogArgs.c_str();
+	// OPTIONS.syslogFields = syslogFields.c_str();
 
 	// thread delaying
 	OPTIONS.threadBase = pt.get<uint64_t>("threadBase", OPTIONS.threadBase);
@@ -374,23 +393,29 @@ int main(int argc, char const *argv[]){
 
 	// cleaner delaying
 	OPTIONS.cleanDelay = pt.get<uint64_t>("cleanDelay", OPTIONS.cleanDelay);
-	// Read in descriptions of sources 1->256
+	// Read in descriptions of sources 1->255
 	bool foundSource = false;
-	for( uint i = 1; i < 257; i++ ) {
+	for( uint i = 0; i < 256; i++ ) {
 		std::string src = "source" + std::to_string(i);
 		OPTIONS.sources[i] = nullptr;
 		if (pt.count(src) > 0) {
 			foundSource = true;
 			debug(20, "creating source %d\n", i);
-			OPTIONS.sources[i] = new source(
-				pt.get<std::string>(src+".logFormat", LOG_FORMAT_DEFAULT),
-				pt.get<std::string>(src+".tag", src),
-				pt.get<short>(src+".syslogPort", 0),
-				pt.get<std::string>(src+".syslogArgs", ""),
-				pt.get<std::string>(src+".inputDir", ""),
-				pt.get<std::string>(src+".fileNameFormat", "FILE_NAME_FORMAT_DEFAULT"),
-				pt.get<short>(src+".kafkaPort", 0)
-			);
+			// create sources and fill in data
+			source *tmp = new source();
+			tmp->logFormat       = pt.get<std::string>(src+".logFormat", tmp->logFormat);
+			tmp->tag             = pt.get<std::string>(src+".tag", tmp->tag);
+			tmp->syslogPort      = pt.get<ushort>(src+".syslogPort", tmp->syslogPort);
+			tmp->defaultFields   = pt.get<std::string>(src+".defaultFields", tmp->defaultFields);
+			tmp->syslogOffset    = pt.get<ushort>(src+".syslogOffset", tmp->syslogOffset);
+			// tmp->syslogSeperator = pt.get<std::string>(src+".syslogSeperator", tmp->syslogSeperator);
+			std::string sep_tmp  = pt.get<std::string>(src+".syslogSeperator", "");
+			tmp->inputDir        = pt.get<std::string>(src+".inputDir", tmp->inputDir);
+			tmp->fNameFormat     = pt.get<std::string>(src+".fileNameFormat", tmp->fNameFormat);
+			tmp->kafkaPort       = pt.get<ushort>(src+".kafkaPort", tmp->kafkaPort);
+			
+			parseSepString(tmp, sep_tmp); // set the syslogSeperator
+			OPTIONS.sources[i]   = tmp;
 			
 			// ensure that one and only one input(file, syslog, kafka) is used for each source
 			if (OPTIONS.sources[i]->syslogPort == 0) {
@@ -400,14 +425,17 @@ int main(int argc, char const *argv[]){
 					}
 				}
 			}
+
 			// print out the information on this source
-			debug(30, "logFormat:      %s\n", OPTIONS.sources[i]->logFormat.c_str());
-			debug(30, "tag:            %s\n", OPTIONS.sources[i]->tag.c_str());
-			debug(30, "syslogPort:     %s\n", (OPTIONS.sources[i]->syslogPort == 0)? "not used":std::to_string(OPTIONS.sources[i]->syslogPort).c_str());
-			debug(30, "syslogArgs:     %s\n", (OPTIONS.sources[i]->syslogArgs == "")? "not used":OPTIONS.sources[i]->syslogArgs.c_str());
-			debug(30, "inputDir:       %s\n", (OPTIONS.sources[i]->inputDir == "")? "not used":OPTIONS.sources[i]->inputDir.c_str());
-			debug(30, "fileNameFormat: %s\n", (OPTIONS.sources[i]->inputDir == "")? "not used":OPTIONS.sources[i]->fNameFormat.c_str());
-			debug(30, "kafkaPort:      %s\n", (OPTIONS.sources[i]->kafkaPort == 0)? "not used":std::to_string(OPTIONS.sources[i]->kafkaPort).c_str());
+			debug(30, "logFormat:       '%s'\n", OPTIONS.sources[i]->logFormat.c_str());
+			debug(30, "tag:             '%s'\n", OPTIONS.sources[i]->tag.c_str());
+			debug(30, "defaultFields:   '%s'\n", OPTIONS.sources[i]->defaultFields.c_str());
+			debug(30, "syslogPort:      '%s'\n", (OPTIONS.sources[i]->syslogPort == 0)? "not used":std::to_string(OPTIONS.sources[i]->syslogPort).c_str());
+			debug(30, "syslogOffset:    '%s'\n", (OPTIONS.sources[i]->syslogPort == 0)? "not used":std::to_string(OPTIONS.sources[i]->syslogOffset).c_str());
+			debug(30, "syslogSeperator: '%s' (as a integer)\n", (OPTIONS.sources[i]->syslogPort == 0)? "not used":std::to_string((uint8_t)OPTIONS.sources[i]->syslogSeperator).c_str());
+			debug(30, "inputDir:        '%s'\n", (OPTIONS.sources[i]->inputDir == "")? "not used":OPTIONS.sources[i]->inputDir.c_str());
+			debug(30, "fileNameFormat:  '%s'\n", (OPTIONS.sources[i]->inputDir == "")? "not used":OPTIONS.sources[i]->fNameFormat.c_str());
+			debug(30, "kafkaPort:       '%s'\n", (OPTIONS.sources[i]->kafkaPort == 0)? "not used":std::to_string(OPTIONS.sources[i]->kafkaPort).c_str());
 		}
 	}
 
@@ -429,41 +457,41 @@ int main(int argc, char const *argv[]){
 
 	cli = new  boost::thread(boost::bind(&handle_cli, start, control));
 
+        
 	/*
-	 *   Loop on condition variables waiting for 
-	 *   cli shutdown or all inserters threads to finish
-	 */ 
-	//nop
-
-	/* 
-	 *  Wait for insertions to complete.  
-	 *   if server was not asked to wait once insertion is done those
-	 *   those threads will wrap up.
-	 *  
-	 *   Otherwise when CLI says to quit it will interupt threads 
-	 *   and begin shutdown cleanly landing here at this join for 
-	 *   threads.	
+	 *   Now wait for the cli to exit 
 	 */
 
 	// Has issue that cli needs to get interupted by last inserter.
 	//  Possible solution of having inserters signal cli as they
 	//  finish.  (aka interupt cli)
 	cli->join();
-
-	// mark end time
-	// long stop = getTimeLocal();
-
-
-	//std::cout << "Enter 'quit' or 'Quit' to shutdown server.\n";
-	//std::string q = "";
-	//while (q != "quit" && q != "Quit"){
-	//	std::cin >> q;
-	//}
+        
+	/*
+	 *  CLI just exited - begin phased shutdown.
+	 *
+	 *   1) tell control to set a flag that tells inserters to stop inserting
+	 *      & record their numbers.
+	 *   2) wait on mutex for all insertion and query threads to be done
+	 *   3) then delete everything and exit.
+	 */
+	
 	debug(30, "deleting server\n");
 	delete server;
+
+        debug(30, "IO Control shutting down insertions\n");
+        control->shutdown();
+        
 	debug(30, "deleting control\n");
 	delete control;
 	delete cli;
+	
+	// delete sources
+	for(int i = 0; i < 256; i++) {
+		if(OPTIONS.sources[i] != nullptr) {
+			delete OPTIONS.sources[i];
+		}
+	}
 }
 
 template <typename T>

@@ -65,8 +65,8 @@ AbstractLog *FileHandler::getFormat(std::string format) {
 		return NetV5_src;
 	}
 	else if (format == "NetV9"){
-        return NetV9_src;
-        }
+		return NetV9_src;
+	}
 	else if (format == "netAscii"){
 		return NetAscii_src;
 	}
@@ -88,15 +88,58 @@ FileHandler::FileHandler() {
 	mNextLine = new std::mutex();
 	stream = new DiventiStream();
 	processed = new DiventiProcessed();
-	format = nullptr;
+	parser = nullptr;
 
 	// initialize source functions
-	Bro_src 	= new Bro();
-	Mon_src		= new Mon();
+	Bro_src 	 = new Bro();
+	Mon_src		 = new Mon();
 	NetAscii_src = new NetAscii();
-	NetV5_src	= new NetV5();
-	NetV9_src	= new NetV9();
-	Basic_src	= new Basic();
+	NetV5_src	 = new NetV5();
+	NetV9_src	 = new NetV9();
+	Basic_src	 = new Basic();
+
+	// define the vector watchers to contain 256 pointers to Watcher
+	watchers = new Watcher*[256];
+	// define all to NULL
+	for( int i = 0; i < 256; i++ ) {
+		//if the inputDir was specified then create a watcher and perform setup
+		if(OPTIONS.sources[i] == nullptr || OPTIONS.sources[i]->inputDir == "") {
+			watchers[i] = NULL;
+		}
+		else {
+			debug(60, "setup for source %d\n", i);
+			watchers[i] = new Watcher(*this, i);
+			readFileDir(OPTIONS.sources[i]->inputDir, i);
+			if(OPTIONS.continuous){
+				debug(50,"File Cont flag active\n");
+				watchDir(watchers[i], OPTIONS.sources[i]->inputDir);
+			}
+		}
+	}
+}
+
+FileHandler::FileHandler(std::vector<std::vector<std::string>> file_status) {
+	debug(10, "Creating FileHandler...\n");
+	waiting = new std::priority_queue<std::pair<std::string, short>, std::vector<std::pair<std::string,short>>, Alpha_Compare>();
+	waiting_files = new std::set<std::string>();
+	mWaiting = new std::mutex();
+	mNextLine = new std::mutex();
+	stream = new DiventiStream();
+	processed = new DiventiProcessed();
+	parser = nullptr;
+
+	// initialize source functions
+	Bro_src 	 = new Bro();
+	Mon_src		 = new Mon();
+	NetAscii_src = new NetAscii();
+	NetV5_src	 = new NetV5();
+	NetV9_src	 = new NetV9();
+	Basic_src	 = new Basic();
+
+	// pull file data out of file
+	for( std::vector<std::string> tokens : file_status ) {
+		statsFromFile(tokens);
+	}
 
 	// define the vector watchers to contain 256 pointers to Watcher
 	watchers = new Watcher*[256];
@@ -125,17 +168,16 @@ FileHandler::~FileHandler() {
 			delete watchers[i];
 		}
 	}
-	delete watchers;
+	delete[] watchers;
 	delete waiting;
 	delete waiting_files;
 	delete mWaiting;
 	delete mNextLine;
-	if( format != nullptr ) {
-		delete format;
-	}
+	delete parser;
 
 	//delete source functions
 	delete Bro_src;
+	delete Mon_src;
 	delete NetAscii_src;
 	delete NetV5_src;
 	delete NetV9_src;
@@ -173,7 +215,7 @@ std::string* FileHandler::getNextLine(logFormat **f){
 
 			// If no more files, abort
 			if (ec == 1){
-				debug(42, "Out of files\n");
+				debug(80, "Out of files\n");
 				break;
 			}
 		}
@@ -181,20 +223,22 @@ std::string* FileHandler::getNextLine(logFormat **f){
 		debug(40, "Reading from file '%s'\n", stream->getFileName().c_str());
 		ret = stream->getLine();
 
+		if(ret->substr(0,1) == "#") {
+			ret = nullptr; // skip headers
+		}
+
 		if (!stream->good()){
-			debug(10, "File '%s' ended\n", stream->getFileName().c_str());//, setting last pos\n", stream->getFileName().c_str());
+			debug(29, "File '%s' ended\n", stream->getFileName().c_str());//, setting last pos\n", stream->getFileName().c_str());
 			file_data *file_d = &file_lines[stream->getFileName()];
 			if(file_d->file_changed()) { //then we added data and should change the timestamps
-				uint64_t curTime = getTime();
-				file_d->totalTime += curTime - file_d->startTime;
-				file_d->timeDone = curTime;
+                            processFileTimes(file_d);
 			}
 			processed->setLastPos(curFile_key, stream->tellPos());
 		}
 	}
 	debug(50, "Read line %s\n", ret ? ("'" + *ret + "'").c_str() : "nullptr");
 	// memcpy(f, &format, sizeof(logFormat));
-	*f = format;
+	*f = parser;
 	mNextLine->unlock();
 	return ret;
 }
@@ -225,7 +269,7 @@ int FileHandler::getNextBuf(char* buf, logFormat **f, AbstractLog **src){
 
 			// If no more files, abort
 			if (ec == 1){
-				debug(122, "Out of files\n");
+				debug(80, "Out of files\n");
 				break;
 			}
 		}
@@ -239,20 +283,19 @@ int FileHandler::getNextBuf(char* buf, logFormat **f, AbstractLog **src){
 		}
 
 		if (!stream->good()){
-			debug(10, "File '%s' ended\n", stream->getFileName().c_str());//, setting last pos\n", stream->getFileName().c_str());
+			debug(29, "File '%s' ended\n", stream->getFileName().c_str());//, setting last pos\n", stream->getFileName().c_str());
+                        last_file_read= stream->getFileName();
 			file_data *file_d = &file_lines[stream->getFileName()];
 			if(file_d->file_changed()) { //then we added data and should change the timestamps
-				uint64_t curTime = getTime();
-				file_d->totalTime += curTime - file_d->startTime;
-				file_d->timeDone = curTime;
-			}
+                            processFileTimes(file_d);
+ 			}
 			processed->setLastPos(curFile_key, stream->tellPos());
 		}
 	}
 	mNextLine->unlock();
 
 	debug(85, "Read buffer(%d) \'%s\'\n", ret, buf);
-	*f = format;
+	*f = parser;
 	*src = curFormat;
 
 	return ret;
@@ -312,7 +355,8 @@ void FileHandler::queueFile(std::string path, short source) {
 /*
  * Attempts to set the active stream.
  * Returns 0 on success, -1 on failure to open a file,
- * and -2 if there are no more files.
+ * and -2 if there are no more files. 
+
  */
 int FileHandler::setActiveStream() {
 	int ret = 0;
@@ -321,85 +365,128 @@ int FileHandler::setActiveStream() {
 	mWaiting->lock();
 	// Check if there is a file to read
 	if(waiting->empty()) {
-		// Clean up activeStream and set the return value to 1 (error code out of files)
-		ret = 1;
-		debug(124, "Out of files to read.\n");
-
-	} else {
-		// Get the path to the next file to read
-		std::string next = waiting->top().first;
-		curSource = waiting->top().second;
-
-		curFormat = getFormat(OPTIONS.sources[curSource]->logFormat);
-
-		waiting->pop();
-
-		//remove the file from the set of waiting files if it's in there
-		//this check is in case multiple files have the same name and it was removed earlier
-		if ( waiting_files->count(next) != 0) {
-			waiting_files->erase(next);
-		}
-		
-		debug(20, "Attempting to open file '%s' (length %li)\n", next.c_str(), processed->getMaxPos(next));
-
-		// Attempt to open it
-		if (stream->tryOpen(next)){
-			// If successful, set trackers and current position
-			debug(1, "Opened file '%s'\n", stream->getFileName().c_str());
-			stream->getFileName() = next;
-
-			std::string file_key = curFormat->getKey(next);
-			debug(10, "file has key: %s\n", file_key.c_str());
-
-			long pos = processed->getLastPos(file_key);
-			stream->seekPos(pos);
-
-			curFormat->parseFileFormat(stream->getFileName(), &format);
-
-			//if we have no entry for this file name
-			if (file_lines.count(next) == 0) {
-				//scan through all files to see if key matches
-				bool found = false;
-				file_data temp;
-				std::string oth_file;
-
-				// This code was the part causing a std::alloc error, it should be fixed now
-				// It was happening because the for loop would get to a item that had been deleted
-				// and would try to run the code on it which didn't work
-				for (std::pair<std::string, file_data> element : file_lines) {
-					if (element.second.key == file_key) {
-						found = true;
-						//overwrite the old file name with the new file name
-						temp = element.second;
-						oth_file = element.first;
-					}
-				}
-				if (found == true) {
-					debug(40, "replacing file name %s with file name %s in file_lines\n", oth_file.c_str(), next.c_str());
-					file_lines[next] = temp;
-					file_lines.erase(oth_file);
-				}
-				if (found == false) {
-					file_lines[next] = file_data(file_key,getTime());
-				}
-			}
-
-			//if we do have a entry for this file name
-			else {
-				//check that the keys match
-				//if not give this file name a postscript ie 'file_name'_alt
-				if( file_key != file_lines[next].key ) {
-					file_lines[next+"_alt"] = file_data(file_key,getTime());
-				}
-			}
-			curFile_key = file_key;
-		} else{
-			// Otherwise, it has already been cleaned up, so just set the return value to -1
-			debug(10, "Failed to open file: %s\n", next.c_str());
-			ret = -1;
-		}
+		debug(80, "Out of files to read.\n");
+		mWaiting->unlock();
+		return 1;
 	}
 
+	//----------
+	//  The que isn't empty.... Let's open a file.
+	//
+	// Get the path to the next file to read
+	std::string next = waiting->top().first;
+	curSource = waiting->top().second;
+	waiting->pop();
+
+
+	// 
+	// Check for the case that we are going through multiple files
+	// the file at the top of the queue is the same one we just closed.
+	//
+	if (!waiting->empty() && next==last_file_read) {
+		// If so skip to the next file and requeue this one
+		// so we don't continually loop opening and ending the same
+		// file while many other files wait.            
+		std::string new_next = waiting->top().first;
+		short new_Source = waiting->top().second;
+		debug(47,"Skipping past top file %s because we just processed it. size:%ld \n ... opening %s\n",
+			next.c_str(),  waiting->size(), new_next.c_str());            
+		waiting->pop();
+		waiting->push(std::pair<std::string, short>(next,curSource));
+		next = new_next;
+		curSource=new_Source;           
+	}
+                
+	curFormat = getFormat(OPTIONS.sources[curSource]->logFormat);
+        
+	//remove the file from the set of waiting files if it's in there
+	//this check is in case multiple files have the same name and it was removed earlier
+	if ( waiting_files->count(next) != 0) {
+		waiting_files->erase(next);
+	}
+
+        
+	// Attempt to open it
+        debug(45, "Attempting to open file '%s' (length %li)\n", next.c_str(), processed->getMaxPos(next));
+	if (!stream->tryOpen(next)){
+            debug(10, "Failed to open file: %s\n", next.c_str());
+            mWaiting->unlock();
+            return -1;
+	}
+
+        
+	//--------
+	// File opened successfully. setup the stream
+	//
+	// If successful, set trackers and current position
+	debug(30, "Opened file '%s'\n", next.c_str());
+	stream->getFileName() = next;
+
+
+        
+	std::string file_key = curFormat->getKey(next);
+	debug(35, "file has key: %s\n", file_key.c_str());
+
+	long pos = processed->getLastPos(file_key);
+	stream->seekPos(pos);
+
+	logFormat *old_parse = parser;
+
+	if(!curFormat->parseFileFormat(stream->getFileName(), &parser)) {
+		debug(45, "WARNING: Using default fields for file %s\n\n", next.c_str());
+		parser = curFormat->createFormat(OPTIONS.sources[curSource]->defaultFields);
+		stream->seekPos(pos); // didn't find fields so go back to where we started from
+	}
+	delete old_parse;
+
+	//if we have no entry for this file name
+	if (file_lines.count(next) == 0) {
+		//scan through all files to see if key matches
+		bool found = false;
+		file_data temp;
+		std::string oth_file;
+
+		// This code was the part causing a std::alloc error, it should be fixed now
+		// It was happening because the for loop would get to a item that had been deleted
+		// and would try to run the code on it which didn't work
+		for (std::pair<std::string, file_data> element : file_lines) {
+			if (element.second.key == file_key) {
+				found = true;
+				//overwrite the old file name with the new file name
+				temp = element.second;
+				oth_file = element.first;
+			}
+		}
+		if (found == true) {
+			debug(40, "replacing file name %s with file name %s in file_lines\n", oth_file.c_str(), next.c_str());
+			file_lines[next] = temp;
+			file_lines[next].startTime = getTime();
+			file_lines.erase(oth_file);
+		}
+		if (found == false) {
+			file_data temp;
+			temp.key = file_key;
+			temp.startTime = getTime();
+			file_lines[next] = temp;
+		}
+	}
+	//if we do have a entry for this file name
+	else {
+		//check that the keys match and that stored key is not empty
+		//if not give this file name a postscript ie 'file_name'_alt
+		if( file_key != file_lines[next].key && file_key != "no key") {
+			file_data temp;
+			temp.key = file_key;
+			temp.startTime = getTime();
+			next += "_alt";
+			stream->getFileName() = next;
+			file_lines[next] = temp;
+		} else {
+			file_lines[next].startTime = getTime();
+		}
+
+	}        
+	curFile_key = file_key;
 	mWaiting->unlock();
 	return ret;
 }
@@ -409,7 +496,7 @@ int FileHandler::setActiveStream() {
  * Attempts to add discovered files to the waiting queue.
  */
 void FileHandler::handleDir(std::string dir, short source) {
-	debug(20, "handling dir: %s\n", dir.c_str());
+	debug(25, "handling dir: %s\n", dir.c_str());
 	if(!boost::filesystem::exists(dir)) {
 		debug(50, "handling dir that doesn't exist: %s\n", dir.c_str());
 		return;
@@ -446,14 +533,35 @@ void FileHandler::handleDir(std::string dir, short source) {
  * A file may be skipped over for the following reasons:
  * 	- The path/name does not match the name regex
  * 	- The file has no more characters to read and is not currently active (in the "current" directory)
+ *
+ *   2019-12 -- added logic to skip queing if the file is currently being processed
+ *   
  */
 void FileHandler::handleFile(std::string file, short source) {
 	debug(80, "handling file: %s\n", file.c_str());
 
-	if (isValidFile(file, source)){
-		queueFile(file, source);
-		debug(80, "enqueued file '%s'\n", file.c_str());
-	}
+        // Check if this file is already in the list, if so just skip.
+        if (waiting_files->find(file)!=waiting_files->end()) {
+            debug(80, "skipping adding redundant file %s to wait list\n", file.c_str());
+            return;
+        }
+
+        // If not a file we're tracking (criteria note above) then skip it 
+	if (!isValidFile(file, source))
+                return;
+        
+        // If we're currently reading it then don't re-add it to the queue
+        // this gives a chance for other files to also be read if the most
+        // recent file is continually being updated
+        if (stream->good() && file==stream->getFileName()) {
+                debug(53, "Skipping que of file %s\n",file.c_str());
+                return;                
+        }
+        
+        // All criteria were met -- que this file.
+	queueFile(file, source);
+	debug(40, "enqueued file '%s'\n", file.c_str());
+	
 }
 
 /*
@@ -596,17 +704,73 @@ std::string FileHandler::getFileInfo(std::string file) {
 	}
 }
 
+// A simple function to process the times and do a bunch of sanity checks.
+void FileHandler::processFileTimes(file_data *file_d){
+    uint64_t curTime = getTime();
+
+    file_d->timeDone = curTime;
+    
+    // Do some sanity checks
+    if (file_d->startTime==0 || file_d->startTime > curTime) {
+        debug(10,"WARNING file: %s has invalid start time %ld (cur: %ld).\n",
+              file_d->key.c_str(), file_d->startTime, curTime);
+        // removed totalTime to zero because we may already have a total time for this file. No reason to wipe it out
+        return;
+    }
+    file_d->totalTime += curTime - file_d->startTime;
+}
+
 // function to return the statistics on a particular file for storing in tokudb.inserts
 std::string FileHandler::statsToFile(std::string file) {
+	file_data *file_d = &file_lines[file];
+	if(file_d->file_changed()) { //then we added data and should change the timestamps
+            processFileTimes(file_d);
+	}
 	return file_lines[file].key + ";" + std::to_string(file_lines[file].buffers) + ";"+ std::to_string(file_lines[file].timeDone) +";" +std::to_string(file_lines[file].totalTime);
 }
 
 //function to take file statistics read from tokudb.inserts and store it in our datastructure
 void FileHandler::statsFromFile(std::vector<std::string> data) {
+        bool corrupt=false;
+
 	debug(30, "file buffers: %s\n", data[2].c_str());
 	debug(30, "file timeDone: %s\n", data[3].c_str());
 	debug(30, "file totalTime: %s\n", data[4].c_str());
-	file_lines[data[0]] = file_data(data[1], std::stol(data[2]), std::stol(data[3]), std::stol(data[4]));
+	file_data temp;
+	temp.key       = data[1];
+        try {
+            temp.buffers   = std::stol(data[2]);
+        }
+        catch (...) {
+            temp.buffers = 0;
+            corrupt = true;
+            debug(10,"Error loading buffers for %s got string %s. Setting data as invalid\n",
+                  temp.key.c_str(),data[2].c_str());
+        }
+        try {
+            temp.timeDone  = std::stol(data[3]);
+        }
+        catch (...) {
+            temp.timeDone = 0;
+            corrupt = true;
+            debug(10,"Error loading timeDone for %s got string %s. Setting data as invalid\n",
+                  temp.key.c_str(),data[3].c_str());
+        }
+        try {
+            temp.totalTime = std::stol(data[4]);
+        }
+        catch (...) {
+            temp.totalTime= 0;
+            corrupt = true;
+            debug(10,"Error loading totalTime for %s got string %s. Setting data as invalid\n",
+                  temp.key.c_str(),data[4].c_str());
+        }
+        //  Use total time of 0 as the corrupt flag as that would never be the case
+        //  for any valid data.
+        if (corrupt)
+            temp.totalTime = 0;  
+
+	file_lines[data[0]] = temp;
 }
 
 std::string FileHandler::curFileKey() {

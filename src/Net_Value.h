@@ -41,10 +41,13 @@ public:
 	std::string toVerboseString();
 	std::string toExtendedString();
 	std::string toJsonString();
-	uint8_t *toBinary();
+
 	Net_Value *operator=(const Value *other);
 	bool operator==(const Value& other);
 	inline bool operator!= (const Value& other) {return !(*this==other);}
+
+	const static int num_flags = 6;
+	static  std::string const  flagStr[num_flags];
 
 private:
         // Define some statics that are private to the Mon Value.

@@ -58,8 +58,14 @@ int main(int argc, char **argv){
 	}
 
 	debug(0, "\nStarting test_parser\n");
-	OPTIONS.sources[1] = new source("bro", "bro-data", 0, "", "suspiciousDir", "", 0);
-	setUpFormat();
+	source *tmp = new source();
+
+	tmp->logFormat = "bro";
+	tmp->tag = "bro-data";
+	tmp->inputDir = "suspiciousDir";
+
+	OPTIONS.sources[1] = tmp;
+	// setUpFormat();
 	std::list<logEntry *> results;
 
 	Bro *func = new Bro();

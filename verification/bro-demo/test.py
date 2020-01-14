@@ -31,7 +31,7 @@ else:
 	files = ["143.166.224.244-results.txt", "192.168.1.1-results.txt", "212.227.97.133-results.txt", "224.0.0.251-results.txt", "65.55.184.16-results.txt"]
 	for i in range(0,5):
 		print("FILE : " + addr[i])
-		args = {"ip": str(addr[i])}
+		args = {"ip": str(addr[i]), "logs": "16690"}
 		time.sleep(.25)
 		# Send the query to diventi
 		diventi_addr = sys.argv[1]

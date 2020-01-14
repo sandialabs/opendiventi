@@ -35,6 +35,7 @@ public:
 	~InsertThread();
 	void run();
 	void thread();
+        void interupt_n_join();
 	std::vector<std::set<std::string>> fileStat();
 	std::string getActiveFile();
 	std::string fileInfo(std::string fileName);
@@ -51,7 +52,8 @@ public:
 	int thNum; // A simple number to index the thread.
 	int shift;
 	int mask;
-	
+        bool shutdown;  // a boolean to signal we have been told to shutdown.
+        
 private:
 	boost::thread *t;
 	bool readLog();
@@ -69,6 +71,8 @@ private:
 	std::unordered_map<std::string, long> file_counts;
 
 	long long numInserted = 0;
+        
+
 };
 
 #endif

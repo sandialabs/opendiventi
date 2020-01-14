@@ -261,33 +261,6 @@ std::string Mon_Value::toJsonString() {
 }
 
 /*
-	Function to return binary representation of the data
-			ewest - 06/23/18 updated: 07/27/18
-				pros:
-					easier/faster on our end
-					more data compression
-				cons:
-					More complicated for user to get data back out
-					Not sure if it will actually work or not ... :)
-*/
-uint8_t *Mon_Value::toBinary() {
-	uint8_t *x;
-	x = new uint8_t[BYTES_FOR_BINARY_REP];
-	x[0] = getProtocol();
-	uint32_t dur = getDuration();
-	dur = htonl(dur);
-	x[1] = dur >> 24;
-	x[2] = (dur & 0x00FF0000) >> 16;
-	x[3] = (dur & 0x0000FF00) >> 8;
-	x[4] = (dur & 0x000000FF);
-	x[5] = getOrigBytes();
-	x[6] = getRespBytes();
-	x[7] = getConnFlags();
-	return x;
-}
-
-
-/*
  *  Packs the data without calling alloc etc.
  */
 void Mon_Value::packData(uint8_t src, transProto protocol, uint32_t duration,
@@ -295,7 +268,7 @@ void Mon_Value::packData(uint8_t src, transProto protocol, uint32_t duration,
 
 	uint8_t magnitude;
 	uint8_t source = src;
-        std::memcpy(vData + SOURCE_POS, &source, sizeof(uint8_t));
+	std::memcpy(vData + SOURCE_POS, &source, sizeof(uint8_t));
         
 	std::memcpy(vData + PROTO_POS, &protocol, sizeof(uint8_t));
 	std::memcpy(vData + DURATION_POS, &duration, sizeof(uint32_t));
@@ -308,5 +281,5 @@ void Mon_Value::packData(uint8_t src, transProto protocol, uint32_t duration,
 	debug(90, "respBytes: %d -> %s\n", magnitude, mag_to_str(magnitude).c_str());
 	std::memcpy(vData + RESP_BYTES_POS, &magnitude, sizeof(uint8_t));
 
-        std::memcpy(vData + FLAGS_POS, &connFlags, sizeof(uint8_t));
+	std::memcpy(vData + FLAGS_POS, &connFlags, sizeof(uint8_t));
 }
