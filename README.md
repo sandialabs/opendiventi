@@ -178,10 +178,11 @@ To create a format simply write concrete classes to fill in the required fields 
 Diventi supports event ingestion from two possible sources: files and the syslog port. File ingestion is good for older data or data from other networks. Syslog is for data received over UDP and is ideal for indexing live environments. See `config.ini` for how to set up data sources.
 
 # Maintainers
-Evan West: contact at ewest@sandia.gov  
-Thomas Kroeger: contact at tmkroeg@sandia.gov  
+Thomas M Kroeger: contact at tmkroeg@sandia.gov  
 
 # Contributers
+Evan West
+Daniel Delayo
 Justin Raizes  
 Cindy Phillips  
 Michael Bender  
